@@ -232,8 +232,26 @@ message GetActiveAccountResponse {
 // reader for the PLATFORM account. Under destination charges the readers and Locations
 // belong to the platform; the club is the merchant through on_behalf_of on the intent.
 message CreateTerminalConnectionTokenRequest {
-  // Deliberately empty. The Location is the server's to decide — a client naming one
-  // would be choosing which country's acceptance rules apply to its own charge.
+  // The venue the session is at, so the reader binds to a Location that says where the
+  // money is actually being taken. Sent by events-service from the event's own venue —
+  // never by a client, which would be choosing its own acceptance rules.
+  //
+  // Omit all of it for an event with no club venue: the platform falls back to its
+  // configured business address.
+  string venue_id = 1;
+  TerminalLocationAddress venue_address = 2;
+}
+
+// Stripe's required address fields vary by country: GB wants line1/city/postal_code/country,
+// while the US, Italy and Spain also require region. Everything is carried so the country
+// rules can be honoured server-side rather than guessed at the call site.
+message TerminalLocationAddress {
+  string display_name = 1;
+  string line1 = 2;
+  string city = 3;
+  string region = 4;
+  string country = 5;
+  string postal_code = 6;
 }
 
 message CreateTerminalConnectionTokenResponse {
