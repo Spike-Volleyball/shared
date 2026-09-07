@@ -7,6 +7,15 @@
         public string? ReturnUrl { get; set; }
         public string? CheckoutSuccessUrl { get; set; }
         public string? CheckoutCancelUrl { get; set; }
+
+        /// <summary>
+        /// The Terminal Location a Tap to Pay reader is bound to at connect time. Under
+        /// destination charges Locations belong to the platform, so one per country is
+        /// correct today — every club is GB, and within a country a Location only decides
+        /// the regional acceptance rules. Per-venue Locations, keyed off the venue address
+        /// clubs-service already holds, are the upgrade; see ResolveTerminalLocationAsync.
+        /// </summary>
+        public string? TerminalLocationId { get; set; }
         public string? WebhookSecret { get; set; }
 
         // Connected-account subscription events (customer.subscription.*, invoice.*) are delivered

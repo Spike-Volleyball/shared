@@ -20,6 +20,7 @@ service PaymentsInternalService {
   rpc CancelPaymentForTarget (CancelPaymentForTargetRequest) returns (CancelPaymentForTargetResponse);
   rpc SyncPaymentFromProvider (SyncPaymentFromProviderRequest) returns (SyncPaymentFromProviderResponse);
   rpc GetActiveAccount (GetActiveAccountRequest) returns (GetActiveAccountResponse);
+  rpc CreateTerminalConnectionToken (CreateTerminalConnectionTokenRequest) returns (CreateTerminalConnectionTokenResponse);
 }
 
 // === CheckActiveSubscription ===
@@ -224,4 +225,21 @@ message GetActiveAccountResponse {
   // Account default currency, uppercase ISO-4217 (e.g. "GBP").
   // Empty when unknown (no account, or provider has no default_currency yet).
   string currency            = 7;
+}
+
+// === CreateTerminalConnectionToken ===
+// A short-lived secret letting the Stripe Terminal SDK on an organiser's phone act as a
+// reader for the PLATFORM account. Under destination charges the readers and Locations
+// belong to the platform; the club is the merchant through on_behalf_of on the intent.
+message CreateTerminalConnectionTokenRequest {
+  // Deliberately empty. The Location is the server's to decide — a client naming one
+  // would be choosing which country's acceptance rules apply to its own charge.
+}
+
+message CreateTerminalConnectionTokenResponse {
+  string secret = 1;
+  // The Location the caller must bind the reader to. Returned rather than scoped into
+  // the token: a Tap to Pay reader is bound at connectReader() time, and scoping a
+  // ConnectionToken has no effect for mobile readers.
+  string location_id = 2;
 }
