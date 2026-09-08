@@ -7,6 +7,17 @@
         public string? ReturnUrl { get; set; }
         public string? CheckoutSuccessUrl { get; set; }
         public string? CheckoutCancelUrl { get; set; }
+
+        /// <summary>
+        /// The Terminal Location a reader binds to when the event names no club venue —
+        /// created once in the Stripe dashboard, not by the app. Not a placeholder for a
+        /// missing venue lookup: plenty of events are created with a free-text location, and
+        /// a reader cannot be connected at all without some Location.
+        ///
+        /// Under destination charges Locations belong to the PLATFORM and are not mapped to
+        /// connected accounts, so one serves every club.
+        /// </summary>
+        public string? TerminalLocationId { get; set; }
         public string? WebhookSecret { get; set; }
 
         // Connected-account subscription events (customer.subscription.*, invoice.*) are delivered

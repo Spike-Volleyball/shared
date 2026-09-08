@@ -20,6 +20,7 @@ service PaymentsInternalService {
   rpc CancelPaymentForTarget (CancelPaymentForTargetRequest) returns (CancelPaymentForTargetResponse);
   rpc SyncPaymentFromProvider (SyncPaymentFromProviderRequest) returns (SyncPaymentFromProviderResponse);
   rpc GetActiveAccount (GetActiveAccountRequest) returns (GetActiveAccountResponse);
+  rpc CreateTerminalConnectionToken (CreateTerminalConnectionTokenRequest) returns (CreateTerminalConnectionTokenResponse);
 }
 
 // === CheckActiveSubscription ===
@@ -224,4 +225,39 @@ message GetActiveAccountResponse {
   // Account default currency, uppercase ISO-4217 (e.g. "GBP").
   // Empty when unknown (no account, or provider has no default_currency yet).
   string currency            = 7;
+}
+
+// === CreateTerminalConnectionToken ===
+// A short-lived secret letting the Stripe Terminal SDK on an organiser's phone act as a
+// reader for the PLATFORM account. Under destination charges the readers and Locations
+// belong to the platform; the club is the merchant through on_behalf_of on the intent.
+message CreateTerminalConnectionTokenRequest {
+  // The venue the session is at, so the reader binds to a Location that says where the
+  // money is actually being taken. Sent by events-service from the event's own venue —
+  // never by a client, which would be choosing its own acceptance rules.
+  //
+  // Omit all of it for an event with no club venue: the platform falls back to its
+  // configured business address.
+  string venue_id = 1;
+  TerminalLocationAddress venue_address = 2;
+}
+
+// Stripe's required address fields vary by country: GB wants line1/city/postal_code/country,
+// while the US, Italy and Spain also require region. Everything is carried so the country
+// rules can be honoured server-side rather than guessed at the call site.
+message TerminalLocationAddress {
+  string display_name = 1;
+  string line1 = 2;
+  string city = 3;
+  string region = 4;
+  string country = 5;
+  string postal_code = 6;
+}
+
+message CreateTerminalConnectionTokenResponse {
+  string secret = 1;
+  // The Location the caller must bind the reader to. Returned rather than scoped into
+  // the token: a Tap to Pay reader is bound at connectReader() time, and scoping a
+  // ConnectionToken has no effect for mobile readers.
+  string location_id = 2;
 }
