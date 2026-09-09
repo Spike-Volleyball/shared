@@ -8,8 +8,10 @@ namespace Shared.Messaging.Contracts.Events.Payments;
 /// (PaymentCompletedEvent, PaymentFailedEvent, PaymentCancelledEvent) which remain only for
 /// backwards-compat during migration.
 ///
-/// Consumers must apply this event idempotently using <see cref="Version"/> — discard any event
-/// whose Version is less than or equal to the projection's last-applied version.
+/// Consumers must apply this event idempotently. <see cref="Version"/> orders events WITHIN one
+/// payment and restarts at 1 for the next payment on the same target, so it cannot order events
+/// across payments — a projection that compares it blindly discards a whole later payment as
+/// stale. Order within a payment by Version, between payments by <see cref="ChangedAt"/>.
 /// </summary>
 public record PaymentStatusChangedEvent : IEvent
 {
@@ -24,8 +26,8 @@ public record PaymentStatusChangedEvent : IEvent
     public required PaymentStatus NewStatus { get; init; }
 
     /// <summary>
-    /// Monotonically-increasing version of the canonical Payment row.
-    /// Projections must ignore events where Version &lt;= projection's last-applied version.
+    /// Monotonically-increasing version of the canonical Payment row — PER ROW. A new payment
+    /// for the same target starts again at 1, so this only orders events sharing a PaymentId.
     /// </summary>
     public required long Version { get; init; }
 
