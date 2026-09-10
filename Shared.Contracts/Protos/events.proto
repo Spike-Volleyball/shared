@@ -9,6 +9,10 @@ service EventsInternalService {
   rpc IsEventParticipant (IsEventParticipantRequest) returns (IsEventParticipantResponse);
   rpc GetEventParticipants (GetEventParticipantsRequest) returns (GetEventParticipantsResponse);
   rpc GetEventContext (GetEventContextRequest) returns (GetEventContextResponse);
+  // What a list that references events needs to print a row — name, when, what kind — for a
+  // whole page of ids at once. Coaching's feedback lists asked the clients to fetch each event
+  // themselves, one request per card.
+  rpc GetEventSummaries (GetEventSummariesRequest) returns (GetEventSummariesResponse);
   rpc GetEventPaymentInfo (GetEventPaymentInfoRequest) returns (GetEventPaymentInfoResponse);
   rpc GetParticipantPaymentInfo (GetParticipantPaymentInfoRequest) returns (GetParticipantPaymentInfoResponse);
   rpc GetParticipantPaymentAmount (GetParticipantPaymentAmountRequest) returns (GetParticipantPaymentAmountResponse);
@@ -63,6 +67,23 @@ message GetEventContextResponse {
   string event_type = 2;       // "TrainingSession", "Match", "Trial", "Evaluation", etc.
   string context_type = 3;     // "None", "Club", "Group", "Team"
   string context_id = 4;       // GUID of the club/group/team, empty if None
+}
+
+message GetEventSummariesRequest {
+  repeated string event_ids = 1;
+}
+
+message GetEventSummariesResponse {
+  // One entry per requested id that names a live event, in no particular order. Ids that are
+  // malformed, unknown or deleted are simply absent, so the caller keys the answer by event_id.
+  repeated EventSummary events = 1;
+}
+
+message EventSummary {
+  string event_id = 1;
+  string name = 2;
+  string start_time = 3;       // ISO 8601, UTC
+  string event_type = 4;       // "TrainingSession", "Match", "Trial", "Evaluation", etc.
 }
 
 // === GetEventPaymentInfo ===
