@@ -9,6 +9,10 @@ service UserProfileService {
   rpc GetUserInfo (GetUserInfoRequest) returns (GetUserInfoResponse);
   rpc CheckGuardianAccess (CheckGuardianAccessRequest) returns (CheckGuardianAccessResponse);
   rpc GetGuardiansForMinor (GetGuardiansForMinorRequest) returns (GetGuardiansForMinorResponse);
+  // GetGuardiansForMinor for a whole roster in one round trip. A people list seeds guardian links
+  // from the ward side for every member it shows, and one call per member was the largest N+1 on
+  // production.
+  rpc GetGuardiansForMinors (GetGuardiansForMinorsRequest) returns (GetGuardiansForMinorsResponse);
   rpc GetMinorsForGuardian (GetMinorsForGuardianRequest) returns (GetMinorsForGuardianResponse);
   rpc GetAllActiveUserIds (GetAllActiveUserIdsRequest) returns (GetAllActiveUserIdsResponse);
   rpc GetAbsenceWindows (GetAbsenceWindowsRequest) returns (GetAbsenceWindowsResponse);
@@ -70,6 +74,23 @@ message GetGuardiansForMinorRequest {
 message GetGuardiansForMinorResponse {
   repeated string guardian_ids = 1;
   string minor_display_name = 2;
+}
+
+message GetGuardiansForMinorsRequest {
+  repeated string minor_ids = 1;
+}
+
+message GetGuardiansForMinorsResponse {
+  // One entry per distinct, well-formed minor_id in the request, in no particular order. A minor
+  // with no guardians is still listed, with empty guardian_ids, so "not a managed minor" and
+  // "not asked" cannot be confused.
+  repeated MinorGuardians minors = 1;
+}
+
+message MinorGuardians {
+  string minor_id = 1;
+  repeated string guardian_ids = 2;
+  string minor_display_name = 3;
 }
 
 message GetMinorsForGuardianRequest {

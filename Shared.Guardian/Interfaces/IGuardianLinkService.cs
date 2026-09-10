@@ -45,4 +45,12 @@ public interface IGuardianLinkService
     /// guardians who have never opened the app, and the only id it holds is the ward's.
     /// </summary>
     Task EnsureWardFreshAsync(Guid wardUserId, bool force = false);
+
+    /// <summary>
+    /// EnsureWardFreshAsync for a whole roster, unforced: the hourly marker is read for every ward
+    /// at once, the wards whose marker is cold go to the source in ONE call, and their links are
+    /// reconciled under one SaveChangesAsync. The resulting rows and markers are exactly what one
+    /// EnsureWardFreshAsync per ward would have left behind.
+    /// </summary>
+    Task EnsureWardsFreshAsync(IReadOnlyCollection<Guid> wardUserIds);
 }
