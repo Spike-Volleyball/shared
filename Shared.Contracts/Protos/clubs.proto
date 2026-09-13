@@ -249,6 +249,8 @@ message MemberInfo {
   // and holds no direct row here, so `role` is empty for it. Empty means an ordinary direct
   // member. Only ever populated for the Guardians and Everyone audiences.
   repeated string via_user_ids = 4;
+  // Present only for a direct team member; never inherited by a guardian.
+  optional string shirt_number = 5;
 }
 
 message MemberSuggestion {
