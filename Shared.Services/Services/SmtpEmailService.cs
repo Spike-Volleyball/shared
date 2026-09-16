@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using Shared.Options;
+using Shared.Services.Logging;
 
 namespace Shared.Services;
 
@@ -11,8 +12,9 @@ public class SmtpEmailService : BaseEmailService
 {
     public SmtpEmailService(
         ILogger<SmtpEmailService> logger,
-        IOptions<EmailSettings> emailOptions)
-        : base(logger, emailOptions)
+        IOptions<EmailSettings> emailOptions,
+        ILogPseudonymizer pseudonymizer)
+        : base(logger, emailOptions, pseudonymizer)
     {
         if (string.IsNullOrWhiteSpace(emailOptions.Value.SmtpHost))
             throw new ArgumentException("SmtpHost must be configured when using SMTP transport.", nameof(emailOptions));
