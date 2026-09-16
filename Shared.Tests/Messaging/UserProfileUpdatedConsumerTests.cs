@@ -93,6 +93,31 @@ public class UserProfileUpdatedConsumerTests : IntegrationTestBase
 
     [TestCase(ReplicaShape.PluralTable)]
     [TestCase(ReplicaShape.SingularTable)]
+    public async Task Consume_AnotherWriterInsertsTheRowFirst_UpdatesItToTheDelivery(ReplicaShape shape)
+    {
+        // Arrange — the row lands between this delivery's lookup and its insert, as a stub of
+        // someone else's: messages' channel enrollment and events' invitation backfill both write one
+        var id = Guid.NewGuid();
+        var stubFirst = new BeforeFirstSave(() => InsertStubAsync(shape, id));
+
+        // Act
+        await ConsumeAsync(shape, Profile(id), stubFirst);
+
+        // Assert
+        stubFirst.Fired.Should().BeTrue();
+        (await RowsAsync(shape, id)).Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(Profile(id), o => o
+                .Including(p => p.Name)
+                .Including(p => p.Surname)
+                .Including(p => p.ImageUrl)
+                .Including(p => p.Email)
+                .Including(p => p.DateOfBirth)
+                .Including(p => p.IsActive)
+                .Including(p => p.IsEmailVerified));
+    }
+
+    [TestCase(ReplicaShape.PluralTable)]
+    [TestCase(ReplicaShape.SingularTable)]
     public async Task Consume_ProfileAlreadyReplicated_UpdatesTheReplicatedFields(ReplicaShape shape)
     {
         // Arrange
@@ -172,6 +197,13 @@ public class UserProfileUpdatedConsumerTests : IntegrationTestBase
         await sut.Consume(delivery);
     }
 
+    private async Task InsertStubAsync(ReplicaShape shape, Guid id)
+    {
+        await using var context = CreateContext(shape, _time);
+        context.Add(new UserProfile { Id = id });
+        await context.SaveChangesAsync();
+    }
+
     private async Task<List<UserProfile>> RowsAsync(ReplicaShape shape, Guid id)
     {
         await using var context = CreateContext(shape, _time);
@@ -215,6 +247,24 @@ public class UserProfileUpdatedConsumerTests : IntegrationTestBase
                 profile.ToTable("UniqueEmailProfiles");
                 profile.HasIndex(p => p.Email).IsUnique();
             });
+    }
+
+    /// <summary>Runs the other writer once, inside the consumer's first save, before its insert.</summary>
+    private sealed class BeforeFirstSave(Func<Task> otherWriter) : SaveChangesInterceptor
+    {
+        public bool Fired { get; private set; }
+
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (!Fired)
+            {
+                Fired = true;
+                await otherWriter();
+            }
+
+            return result;
+        }
     }
 
     /// <summary>
