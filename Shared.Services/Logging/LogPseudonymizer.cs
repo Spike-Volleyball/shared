@@ -6,18 +6,23 @@ using Shared.Options;
 namespace Shared.Services.Logging;
 
 /// <summary>
-/// The hash is HMAC-SHA256 over the UTF-8 of the trimmed, lower-cased address, keyed with the
-/// UTF-8 of <see cref="LogPseudonymizationSettings.HmacKey"/> and cut to its first 16 hex digits,
-/// so the value to search the logs for is
-/// <c>printf '%s' "$ADDRESS" | openssl dgst -sha256 -hmac "$KEY" -r | cut -c1-16</c>.
+/// The hash is HMAC-SHA256 over the UTF-8 of the normalised value — an address trimmed and
+/// lower-cased, a phone number cut down to its leading '+' and its digits — keyed with the UTF-8
+/// of <see cref="LogPseudonymizationSettings.HmacKey"/> and cut to its first 16 hex digits, so
+/// the value to search the logs for is
+/// <c>printf '%s' "$NORMALISED" | openssl dgst -sha256 -hmac "$KEY" -r | cut -c1-16</c>.
 /// Without a usable key there is no hash at all: an unkeyed one is reversed by hashing a list of
-/// likely addresses.
+/// likely values.
 /// </summary>
 public sealed class LogPseudonymizer : ILogPseudonymizer
 {
     private const int HashHexLength = 16;
     private const string Masked = "***";
     private const string NoValue = "(empty)";
+
+    /// <summary>Below this the last two digits are too large a share of the number to show.</summary>
+    private const int MinimumDigitsToShowTheEnd = 6;
+    private const int VisibleTrailingDigits = 2;
 
     private readonly byte[]? _key;
 
@@ -35,6 +40,24 @@ public sealed class LogPseudonymizer : ILogPseudonymizer
 
         var mask = MaskEmail(normalized);
         return _key is null ? mask : $"{mask} hmac:{Hash(_key, normalized)}";
+    }
+
+    public string PseudonymizePhoneNumber(string? phoneNumber)
+    {
+        var trimmed = phoneNumber?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return NoValue;
+
+        // Spacing, dashes and brackets vary with whoever typed the number; the digits do not.
+        var digits = new string(trimmed.Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length == 0)
+            return Masked;
+
+        var international = trimmed.StartsWith('+') ? "+" : string.Empty;
+        var mask = digits.Length < MinimumDigitsToShowTheEnd
+            ? Masked
+            : $"{international}{Masked}{digits[^VisibleTrailingDigits..]}";
+        return _key is null ? mask : $"{mask} hmac:{Hash(_key, international + digits)}";
     }
 
     private static string Hash(byte[] key, string value) =>

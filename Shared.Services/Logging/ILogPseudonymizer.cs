@@ -14,4 +14,11 @@ public interface ILogPseudonymizer
     /// <c>{EmailRef}</c>.
     /// </summary>
     string PseudonymizeEmail(string? email);
+
+    /// <summary>
+    /// A mask that keeps the international '+' and the last two digits (<c>+***23</c>), followed
+    /// by a keyed hash of the number's '+' and digits when a key is configured. Log it as
+    /// <c>{PhoneRef}</c>.
+    /// </summary>
+    string PseudonymizePhoneNumber(string? phoneNumber);
 }

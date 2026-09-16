@@ -5,10 +5,10 @@ namespace Shared.Tests.Testing;
 
 [TestFixture]
 [Category("Unit")]
-public class EmailLogGuardTests
+public class PersonalDataLogGuardTests
 {
     private static IReadOnlyList<string> Inspect(string body) =>
-        EmailLogGuard.Inspect($$"""
+        PersonalDataLogGuard.Inspect($$"""
             class Subject
             {
                 void Run()
@@ -28,22 +28,40 @@ public class EmailLogGuardTests
     [TestCase("""_logger.LogWarning($"Login failed for {request.Email}");""")]
     [TestCase("""var log = LoggerMessage.Define<string>(LogLevel.Information, new EventId(1), "Sent to {Email}");""")]
     [TestCase("""logger.LogInformation("Sent to {@Recipient}", new { user.Email });""")]
-    public void Inspect_WithARawAddress_FlagsTheStatement(string statement)
+    public void Inspect_WithARawEmailAddress_FlagsTheStatement(string statement)
     {
         // Act
         var findings = Inspect(statement);
 
         // Assert
-        findings.Should().ContainSingle();
+        findings.Should().ContainSingle().Which.Should().Contain("email address");
+    }
+
+    [TestCase("""_logger.LogInformation("Phone number {PhoneNumber} already in use", phoneNumber);""")]
+    [TestCase("""_logger.LogInformation("Phone number {PhoneNumber} already in use", request.PhoneNumber);""")]
+    [TestCase("""_logger.LogInformation("Contact for {UserId}: {Contact}", user.Id, guardianPhone);""")]
+    [TestCase("""_logger.LogInformation("Texting {GuardianPhone}", contact);""")]
+    [TestCase("""_logger.LogInformation("Numbers in use: {Numbers}", phoneNumbers);""")]
+    [TestCase("""_logger.LogWarning($"Number {_phoneNumber} rejected");""")]
+    public void Inspect_WithARawPhoneNumber_FlagsTheStatement(string statement)
+    {
+        // Act
+        var findings = Inspect(statement);
+
+        // Assert
+        findings.Should().ContainSingle().Which.Should().Contain("phone number");
     }
 
     [TestCase("""_logger.LogWarning("Login failed for {EmailRef}", _pseudonymizer.PseudonymizeEmail(request.Email));""")]
+    [TestCase("""_logger.LogInformation("Phone number {PhoneRef} already in use", _pseudonymizer.PseudonymizePhoneNumber(phoneNumber));""")]
     [TestCase("""_logger.LogWarning("Login failed for user {UserId}", user.Id);""")]
     [TestCase("""_logger.LogInformation("User {UserId} verified: {Verified}", user.Id, user.IsEmailVerified);""")]
+    [TestCase("""_logger.LogInformation("User {UserId} confirmed: {Confirmed}", user.Id, user.PhoneNumberConfirmed);""")]
     [TestCase("""_logger.LogInformation("Sent {Template} email", EmailTemplateName.ResetPassword);""")]
+    [TestCase("""_logger.LogInformation("Played through {Device}", headphones);""")]
     [TestCase("""_logger.LogInformation("Literal {{Email}} braces are not a placeholder");""")]
     [TestCase("""await _emailService.SendEmailAsync(email, template, parameters);""")]
-    public void Inspect_WithoutARawAddress_FindsNothing(string statement)
+    public void Inspect_WithoutRawPersonalData_FindsNothing(string statement)
     {
         // Act
         var findings = Inspect(statement);
@@ -53,12 +71,24 @@ public class EmailLogGuardTests
     }
 
     [Test]
+    public void Inspect_WithAnAddressAndANumberInOneStatement_ReportsBoth()
+    {
+        // Act
+        var findings = Inspect("""_logger.LogInformation("Contact {Email} or {Phone}", email, phone);""");
+
+        // Assert
+        findings.Should().HaveCount(2);
+        findings.Should().ContainSingle(f => f.Contains("email address"));
+        findings.Should().ContainSingle(f => f.Contains("phone number"));
+    }
+
+    [Test]
     public void Inspect_WithAnAddressOnlyInAComment_FindsNothing()
     {
         // Act
         var findings = Inspect("""
                     _logger.LogInformation(
-                        // the recipient's email is left out on purpose
+                        // the recipient's email and phone are left out on purpose
                         "Sent invitation {InvitationId}", invitationId);
             """);
 
@@ -70,7 +100,7 @@ public class EmailLogGuardTests
     public void Inspect_WithALoggerMessageAttribute_ChecksItsTemplate()
     {
         // Act
-        var findings = EmailLogGuard.Inspect("""
+        var findings = PersonalDataLogGuard.Inspect("""
             static partial class Log
             {
                 [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Sent to {Email}")]
@@ -97,10 +127,10 @@ public class EmailLogGuardTests
     }
 
     [Test]
-    public void FindRawEmailLogStatements_SkipsBuildOutputAndTheDirectoriesItIsTold()
+    public void FindRawPersonalDataLogStatements_SkipsBuildOutputAndTheDirectoriesItIsTold()
     {
         // Arrange
-        var root = Directory.CreateTempSubdirectory("email-log-guard-").FullName;
+        var root = Directory.CreateTempSubdirectory("personal-data-log-guard-").FullName;
         const string leak = """class C { void M() { _logger.LogInformation("To {Email}", email); } }""";
         try
         {
@@ -111,7 +141,7 @@ public class EmailLogGuardTests
             }
 
             // Act
-            var findings = EmailLogGuard.FindRawEmailLogStatements(root, "shared");
+            var findings = PersonalDataLogGuard.FindRawPersonalDataLogStatements(root, "shared");
 
             // Assert
             findings.Should().ContainSingle()

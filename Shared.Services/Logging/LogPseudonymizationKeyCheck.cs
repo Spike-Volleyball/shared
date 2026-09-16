@@ -6,7 +6,8 @@ using Shared.Options;
 namespace Shared.Services.Logging;
 
 /// <summary>
-/// Says at startup, once, that email addresses in this service's logs cannot be correlated.
+/// Says at startup, once, that email addresses and phone numbers in this service's logs cannot
+/// be correlated.
 /// A warning and never a failure: the masks alone are safe, and a missing secret must not take
 /// a service down.
 /// </summary>
@@ -19,7 +20,7 @@ public sealed class LogPseudonymizationKeyCheck(
         if (!options.Value.HasUsableKey)
         {
             logger.LogWarning(
-                "{Setting} is missing or shorter than {MinimumLength} characters: email addresses are logged as masks only and cannot be correlated",
+                "{Setting} is missing or shorter than {MinimumLength} characters: email addresses and phone numbers are logged as masks only and cannot be correlated",
                 $"{LogPseudonymizationSettings.SectionName}:{nameof(LogPseudonymizationSettings.HmacKey)}",
                 LogPseudonymizationSettings.MinimumKeyLength);
         }

@@ -11,9 +11,9 @@ public class LogPseudonymizationSettings
     public const int MinimumKeyLength = 32;
 
     /// <summary>
-    /// Secret for the keyed hash that stands in for an email address in the logs. Every service
-    /// needs the same value for one address to correlate across all of them. Unset or too short,
-    /// the logs carry only a mask.
+    /// Secret for the keyed hash that stands in for an email address or a phone number in the
+    /// logs. Every service needs the same value for one identifier to correlate across all of
+    /// them. Unset or too short, the logs carry only a mask.
     /// </summary>
     public string? HmacKey { get; set; }
 
