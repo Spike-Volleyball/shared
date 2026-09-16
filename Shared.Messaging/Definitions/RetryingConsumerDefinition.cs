@@ -38,7 +38,8 @@ public class RetryingConsumerDefinition<TConsumer> : ConsumerDefinition<TConsume
 /// </remarks>
 public static class RetryingConsumerRegistration
 {
-    public static void AddRetryingConsumer<TConsumer>(this IBusRegistrationConfigurator bus)
+    public static IConsumerRegistrationConfigurator<TConsumer> AddRetryingConsumer<TConsumer>(
+        this IBusRegistrationConfigurator bus)
         where TConsumer : class, IConsumer =>
         bus.AddConsumer<TConsumer, RetryingConsumerDefinition<TConsumer>>();
 }
