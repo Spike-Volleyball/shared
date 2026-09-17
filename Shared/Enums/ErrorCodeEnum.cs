@@ -40,6 +40,9 @@
         ReminderCooldownActive = 313,
         TournamentFull = 314,
         PlayerInAnotherSquad = 315,
+        ScoutLogConflict = 316,
+        MatchRulesLocked = 317,
+        MatchAlreadyScored = 318,
 
         // Clubs (400-499)
         ClubNotFound = 400,
