@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Options;
 using Shared.Services.Interfaces;
+using Shared.Services.Logging;
 
 namespace Shared.Services;
 
@@ -9,12 +10,14 @@ public abstract class BaseEmailService : IEmailService
 {
     protected readonly ILogger _logger;
     protected readonly EmailSettings _emailOptions;
+    private readonly ILogPseudonymizer _pseudonymizer;
     private readonly string _templatesPath;
 
-    protected BaseEmailService(ILogger logger, IOptions<EmailSettings> emailOptions)
+    protected BaseEmailService(ILogger logger, IOptions<EmailSettings> emailOptions, ILogPseudonymizer pseudonymizer)
     {
         _logger = logger;
         _emailOptions = emailOptions.Value;
+        _pseudonymizer = pseudonymizer;
         _templatesPath = Path.Combine(AppContext.BaseDirectory, "EmailTemplates");
     }
 
@@ -27,13 +30,13 @@ public abstract class BaseEmailService : IEmailService
 
             await SendEmailCoreAsync(email, _emailOptions.FromEmail, processedTemplate.Subject, processedTemplate.Body);
 
-            _logger.LogInformation("Email sent successfully to {Email} using template {TemplateName}",
-                email, templateName);
+            _logger.LogInformation("Email sent successfully to {EmailRef} using template {TemplateName}",
+                _pseudonymizer.PseudonymizeEmail(email), templateName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {Email} using template {TemplateName}",
-                email, templateName);
+            _logger.LogError(ex, "Failed to send email to {EmailRef} using template {TemplateName}",
+                _pseudonymizer.PseudonymizeEmail(email), templateName);
             throw;
         }
     }

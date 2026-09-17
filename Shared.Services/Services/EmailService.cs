@@ -3,6 +3,7 @@ using Amazon.SimpleEmailV2.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Options;
+using Shared.Services.Logging;
 
 namespace Shared.Services;
 
@@ -13,8 +14,9 @@ public class EmailService : BaseEmailService
     public EmailService(
         IAmazonSimpleEmailServiceV2 sesClient,
         ILogger<EmailService> logger,
-        IOptions<EmailSettings> emailOptions)
-        : base(logger, emailOptions)
+        IOptions<EmailSettings> emailOptions,
+        ILogPseudonymizer pseudonymizer)
+        : base(logger, emailOptions, pseudonymizer)
     {
         _sesClient = sesClient;
     }

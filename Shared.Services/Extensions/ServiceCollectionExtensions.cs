@@ -9,6 +9,7 @@ using Shared.Services.Embeds;
 using Shared.Services.FileStorage;
 using Shared.Services.FileStorage.Intefaces;
 using Shared.Services.Interfaces;
+using Shared.Services.Logging;
 using Shared.Services.Services;
 using Shared.Services.Services.Interfaces;
 
@@ -76,6 +77,12 @@ public static class ServiceCollectionExtensions
             .BindConfiguration("S3")
             .Validate(s => !string.IsNullOrEmpty(s.PublicBaseUrl) && Uri.TryCreate(s.PublicBaseUrl, UriKind.Absolute, out _),
                 "S3:PublicBaseUrl must be a valid absolute URL");
+
+        // Core rather than opt-in: both email transports registered above depend on it.
+        services.AddOptions<LogPseudonymizationSettings>()
+            .BindConfiguration(LogPseudonymizationSettings.SectionName);
+        services.AddSingleton<ILogPseudonymizer, LogPseudonymizer>();
+        services.AddHostedService<LogPseudonymizationKeyCheck>();
 
         services.AddScoped<IHashingService, HashingService>();
         services.AddScoped<IFileService, S3FileService>();
