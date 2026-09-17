@@ -58,14 +58,48 @@ public class AudienceRolesTests
     }
 
     [Test]
-    public void Matches_PlayerCoach_IsInBoth()
+    public void Matches_StaffStillHoldingTheDefaultRole_IsNotAPlayer()
     {
-        // Arrange
-        string[] playerCoach = ["Player", "Coach"];
+        // Arrange — assigning a staff role keeps the default one, so this is what every coach's row reads
+        string[] coach = ["Player", "Coach"];
 
         // Act & Assert
-        AudienceRoles.Matches(Audience.Players, ContextType.Team, playerCoach).Should().BeTrue();
-        AudienceRoles.Matches(Audience.Staff, ContextType.Team, playerCoach).Should().BeTrue();
+        AudienceRoles.Matches(Audience.Players, ContextType.Team, coach).Should().BeFalse();
+        AudienceRoles.Matches(Audience.Staff, ContextType.Team, coach).Should().BeTrue();
+    }
+
+    [Test]
+    public void Matches_StaffWithARosterPosition_IsAPlayerAsWell()
+    {
+        // Arrange
+        string[] coach = ["Player", "Coach"];
+        string[] coachOnly = ["Coach"];
+
+        // Act & Assert
+        AudienceRoles.Matches(Audience.Players, ContextType.Team, coach, holdsRosterPosition: true).Should().BeTrue();
+        AudienceRoles.Matches(Audience.Staff, ContextType.Team, coach, holdsRosterPosition: true).Should().BeTrue();
+        AudienceRoles.Matches(Audience.Players, ContextType.Team, coachOnly, holdsRosterPosition: true)
+            .Should().BeTrue("a coach placed on the roster plays, whatever else they hold");
+    }
+
+    [Test]
+    public void Matches_RosterPosition_ChangesNothingForSomeoneWithoutAStaffRole()
+    {
+        // Act & Assert
+        AudienceRoles.Matches(Audience.Players, ContextType.Team, ["Captain"], holdsRosterPosition: true).Should().BeTrue();
+        AudienceRoles.Matches(Audience.Staff, ContextType.Team, ["Player"], holdsRosterPosition: true).Should().BeFalse();
+        AudienceRoles.Matches(Audience.Players, ContextType.Team, ["Physio"], holdsRosterPosition: true)
+            .Should().BeFalse("a position does not open the allow-list to a role it does not name");
+    }
+
+    [Test]
+    public void Matches_ClubOrGroupStaffHoldingTheDefaultRole_IsNotAPlayer()
+    {
+        // Act & Assert
+        AudienceRoles.Matches(Audience.Players, ContextType.Club, ["Member", "Treasurer"]).Should().BeFalse();
+        AudienceRoles.Matches(Audience.Staff, ContextType.Club, ["Member", "Treasurer"]).Should().BeTrue();
+        AudienceRoles.Matches(Audience.Players, ContextType.Group, ["Member", "Coach"]).Should().BeFalse();
+        AudienceRoles.Matches(Audience.Players, ContextType.Group, ["Member"]).Should().BeTrue();
     }
 
     [Test]
