@@ -66,25 +66,31 @@ public static class AudienceRoles
     /// True when a member holding <paramref name="roles"/> belongs in <paramref name="audience"/>.
     /// An empty role set is treated as DefaultRole. Guardians and Everyone are not answerable
     /// from roles alone and throw — the caller must have resolved derivation first.
+    ///
+    /// A staff role takes a member out of Players unless they hold a roster position. Assigning a
+    /// staff role keeps the default one, so a coach's row reads ['Player', 'Coach'], and "holds a
+    /// playing role" alone would put every coach in Players. A coach who is on the roster does
+    /// play, and stays in both. Only a team roster has positions; clubs and groups pass false.
     /// </summary>
-    public static bool Matches(Audience audience, ContextType contextType, IReadOnlyCollection<string> roles)
+    public static bool Matches(
+        Audience audience,
+        ContextType contextType,
+        IReadOnlyCollection<string> roles,
+        bool holdsRosterPosition = false)
     {
-        if (audience == Audience.Members)
-            return true;
+        var held = roles.Count == 0 ? [DefaultRole(contextType)] : roles;
+        var holdsStaffRole = held.Any(Staff(contextType).Contains);
 
-        var table = audience switch
+        return audience switch
         {
-            Audience.Players => Players(contextType),
-            Audience.Staff => Staff(contextType),
+            Audience.Members => true,
+            Audience.Staff => holdsStaffRole,
+            Audience.Players => holdsStaffRole ? holdsRosterPosition : held.Any(Players(contextType).Contains),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(audience),
                 audience,
                 "Guardians and Everyone are derived from membership, not from roles. Resolve the derivation first."),
         };
-
-        return roles.Count == 0
-            ? table.Contains(DefaultRole(contextType))
-            : roles.Any(table.Contains);
     }
 
     private static IReadOnlySet<string> NameSet(params string[] roleNames) =>
