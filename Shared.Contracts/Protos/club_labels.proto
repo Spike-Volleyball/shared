@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Contracts.Grpc";
+
+package clubs;
+
+// Display names for a club's own teams, groups, venues and courts, for another service that shows
+// its data to people who may not be able to read the club: a shared planner view is opened by
+// anyone its planner chose, while a private club hides its teams and venues from non-members.
+// Names and colours only — no rosters, no addresses, no contact details.
+service ClubLabels {
+  rpc GetClubLabels (GetClubLabelsRequest) returns (GetClubLabelsResponse);
+}
+
+message GetClubLabelsRequest {
+  string club_id = 1;
+}
+
+message GetClubLabelsResponse {
+  // False when no such club exists; every other field is then empty.
+  bool found = 1;
+  UnitLabel club = 2;
+  repeated UnitLabel teams = 3;
+  repeated UnitLabel groups = 4;
+  repeated VenueLabel venues = 5;
+}
+
+message UnitLabel {
+  string id = 1;
+  string name = 2;
+  // Empty when none is set.
+  string color = 3;
+  // Clubs only; empty for teams and groups and when none is set.
+  string logo_url = 4;
+}
+
+message VenueLabel {
+  string id = 1;
+  string name = 2;
+  repeated CourtLabel courts = 3;
+}
+
+message CourtLabel {
+  string id = 1;
+  string name = 2;
+}
