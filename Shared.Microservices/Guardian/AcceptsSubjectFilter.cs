@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.DataAccess.Providers.Interfaces;
+using Shared.Microservices.Authorization;
 using Shared.Enums;
 using Shared.Exceptions;
 using Shared.Services;
@@ -40,7 +40,7 @@ public sealed class AcceptsSubjectFilter : IAsyncAuthorizationFilter
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var httpContext = context.HttpContext;
-        var jwtUserId = ResolveJwtUserId(httpContext);
+        var jwtUserId = CallerIdentity.UserId(httpContext, _jwtPayloadProvider);
 
         if (!httpContext.Request.Headers.TryGetValue(GuardianContextKeys.ActingAsHeader, out var rawValue))
         {
@@ -75,16 +75,5 @@ public sealed class AcceptsSubjectFilter : IAsyncAuthorizationFilter
         httpContext.Items[GuardianContextKeys.ActorUserId] = actorUserId;
         httpContext.Items[GuardianContextKeys.AuthorizationSource] = authorization.AuthorizationSource;
         httpContext.Items[GuardianContextKeys.Processed] = true;
-    }
-
-    private Guid? ResolveJwtUserId(HttpContext context)
-    {
-        if (context.User.Identity is not ClaimsIdentity { IsAuthenticated: true } identity)
-            return null;
-
-        var payload = _jwtPayloadProvider.GetJwtPayload(identity.Claims,
-            context.Request.Headers.Authorization.ToString());
-
-        return payload.UserId == Guid.Empty ? null : payload.UserId;
     }
 }

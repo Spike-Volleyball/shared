@@ -23,6 +23,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Messaging.Contracts"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Services", "Shared.Services\Shared.Services.csproj", "{58B9C60B-263E-4C48-849F-BAE873F08AE4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Security", "Shared.Security\Shared.Security.csproj", "{6F3C1E2A-8B4D-4E5F-9A1B-2C3D4E5F6A71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Testing.Security", "Shared.Testing.Security\Shared.Testing.Security.csproj", "{7A4D2F3B-9C5E-4F60-8B2C-3D4E5F6A7B82}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +73,14 @@ Global
 		{58B9C60B-263E-4C48-849F-BAE873F08AE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58B9C60B-263E-4C48-849F-BAE873F08AE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{58B9C60B-263E-4C48-849F-BAE873F08AE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F3C1E2A-8B4D-4E5F-9A1B-2C3D4E5F6A71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F3C1E2A-8B4D-4E5F-9A1B-2C3D4E5F6A71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F3C1E2A-8B4D-4E5F-9A1B-2C3D4E5F6A71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F3C1E2A-8B4D-4E5F-9A1B-2C3D4E5F6A71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A4D2F3B-9C5E-4F60-8B2C-3D4E5F6A7B82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A4D2F3B-9C5E-4F60-8B2C-3D4E5F6A7B82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A4D2F3B-9C5E-4F60-8B2C-3D4E5F6A7B82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A4D2F3B-9C5E-4F60-8B2C-3D4E5F6A7B82}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
