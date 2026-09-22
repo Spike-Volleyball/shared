@@ -27,6 +27,8 @@
     <ProjectReference Include="..\Shared.Guardian\Shared.Guardian.csproj" />
     <ProjectReference Include="..\Shared.Logging\Shared.Logging.csproj" />
     <ProjectReference Include="..\Shared.Microservices\Shared.Microservices.csproj" />
+    <ProjectReference Include="..\Shared.Security\Shared.Security.csproj" />
+    <ProjectReference Include="..\Shared.Testing.Security\Shared.Testing.Security.csproj" />
     <ProjectReference Include="..\Shared.Services\Shared.Services.csproj" />
     <ProjectReference Include="..\Shared.Testing\Shared.Testing.csproj" />
   </ItemGroup>
