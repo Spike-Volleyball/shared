@@ -16,7 +16,11 @@ public enum PersonalDataAudience
     Organiser = 8,
 }
 
-/// <summary>Who a DTO carrying <see cref="PersonalDataAttribute"/> properties is built for.</summary>
+/// <summary>
+/// Who a DTO carrying personal data is built for. The properties themselves are marked with the
+/// logging classification <c>Shared.Logging.Attributes.PersonalDataAttribute</c>, so one marker both
+/// redacts the value in logs and requires the DTO to name its reader.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class AudienceAttribute(PersonalDataAudience audience) : Attribute
 {

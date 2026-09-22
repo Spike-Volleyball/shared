@@ -1,4 +1,5 @@
 using System.Reflection;
+using Shared.Logging.Attributes;
 using Shared.Privacy;
 
 namespace Shared.Testing.Security;

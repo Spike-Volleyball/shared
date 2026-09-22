@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using FluentAssertions;
 using Shared.DTOs;
+using Shared.Logging.Attributes;
 using Shared.Models;
 using Shared.Privacy;
 using Shared.Testing.Security;
