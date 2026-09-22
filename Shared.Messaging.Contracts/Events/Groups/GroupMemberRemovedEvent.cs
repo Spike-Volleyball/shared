@@ -16,4 +16,12 @@ public record GroupMemberRemovedEvent : INotificationEvent
     /// as having done the removal, so the club's own logo is what the row shows.
     /// </summary>
     public string? ClubLogoUrl { get; init; }
+
+    /// <summary>
+    /// True when the row went because the club membership behind it ended - the member left the
+    /// club or was removed from it - rather than because someone took them out of this group.
+    /// Leaving the club is the news, so nobody is told about each of its groups; anything that
+    /// cleans up after a removal treats this one like any other.
+    /// </summary>
+    public bool IsClubDeparture { get; init; }
 }
