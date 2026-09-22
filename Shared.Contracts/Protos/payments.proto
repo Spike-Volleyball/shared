@@ -240,6 +240,12 @@ message CreateTerminalConnectionTokenRequest {
   // configured business address.
   string venue_id = 1;
   TerminalLocationAddress venue_address = 2;
+
+  // The event's recipient, exactly as StartPaymentForTarget is given it. An intent created
+  // on_behalf_of a connected account can only be collected by a reader connected on that
+  // account's behalf, so the token answers with the account the intent will name.
+  string recipient_owner_type = 3;  // "User" | "Club"
+  string recipient_owner_id   = 4;
 }
 
 // Stripe's required address fields vary by country: GB wants line1/city/postal_code/country,
@@ -260,4 +266,8 @@ message CreateTerminalConnectionTokenResponse {
   // the token: a Tap to Pay reader is bound at connectReader() time, and scoping a
   // ConnectionToken has no effect for mobile readers.
   string location_id = 2;
+  // The connected account the reader must be connected on behalf of — the intent's
+  // on_behalf_of. Stripe refuses to collect for such an intent on a reader connected
+  // without it.
+  string on_behalf_of = 3;
 }
