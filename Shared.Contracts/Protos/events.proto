@@ -7,6 +7,9 @@ package events;
 service EventsInternalService {
   rpc IsEventAdmin (IsEventAdminRequest) returns (IsEventAdminResponse);
   rpc IsEventParticipant (IsEventParticipantRequest) returns (IsEventParticipantResponse);
+  // Whether a user may see an event, by the rule its own page follows. An event's comment thread
+  // is read by the event's audience, not a club's, so social asks here before serving one.
+  rpc CanReadEvent (CanReadEventRequest) returns (CanReadEventResponse);
   rpc GetEventParticipants (GetEventParticipantsRequest) returns (GetEventParticipantsResponse);
   rpc GetEventContext (GetEventContextRequest) returns (GetEventContextResponse);
   // What a list that references events needs to print a row — name, when, what kind — for a
@@ -38,6 +41,16 @@ message IsEventParticipantRequest {
 message IsEventParticipantResponse {
   bool is_participant = 1;
   bool event_exists = 2;
+}
+
+message CanReadEventRequest {
+  string event_id = 1;
+  string user_id = 2;
+}
+
+// False for an event that does not exist too, so the answer never says which it was.
+message CanReadEventResponse {
+  bool can_read = 1;
 }
 
 message GetEventParticipantsRequest {
