@@ -23,13 +23,23 @@ public abstract class SecureHub(IServiceProvider services) : Hub
     protected async Task JoinResourceGroupAsync<TAccess>(string group, Guid resourceId, TAccess access)
         where TAccess : struct, Enum
     {
+        await EnsureAccessAsync(resourceId, access);
+        await base.Groups.AddToGroupAsync(Context.ConnectionId, group, Context.ConnectionAborted);
+    }
+
+    /// <summary>
+    /// Asks the resource's authority what a route declaring [Access] asks, for a hub method that acts
+    /// on a resource by id: a hub method is another door to the same resource.
+    /// </summary>
+    /// <exception cref="HubException">The same refusal whether the resource is hidden or missing.</exception>
+    protected async Task EnsureAccessAsync<TAccess>(Guid resourceId, TAccess access)
+        where TAccess : struct, Enum
+    {
         var authority = services.GetRequiredService<IResourceAuthority<TAccess>>();
         var userId = CallerIdentity.UserId(Context.User ?? new(), services.GetRequiredService<IJwtPayloadProvider>());
 
         if (!await authority.CanAsync(userId, resourceId, access, Context.ConnectionAborted))
             throw new HubException("Not found");
-
-        await base.Groups.AddToGroupAsync(Context.ConnectionId, group, Context.ConnectionAborted);
     }
 
     protected Task LeaveGroupAsync(string group) =>

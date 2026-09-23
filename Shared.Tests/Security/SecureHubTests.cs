@@ -20,6 +20,8 @@ public class SecureHubTests
     private sealed class ProbeHub(IServiceProvider services) : SecureHub(services)
     {
         public Task Join(Guid probeId) => JoinResourceGroupAsync(Room, probeId, ProbeAccess.Read);
+
+        public Task Act(Guid probeId) => EnsureAccessAsync(probeId, ProbeAccess.Read);
     }
 
     private sealed class Caller(ClaimsPrincipal user) : HubCallerContext
@@ -67,6 +69,31 @@ public class SecureHubTests
 
         // Assert
         await act.Should().ThrowAsync<HubException>();
+    }
+
+    [Test]
+    public async Task EnsureAccess_ForAMember_LetsTheMethodGoOn()
+    {
+        // Act
+        var act = () => HubFor(ProbeAuthority.Member).Act(ProbeAuthority.PrivateProbe);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Test]
+    public async Task EnsureAccess_ForAStranger_RefusesAsForAMissingResource()
+    {
+        // Arrange — a hub method acting on a resource by id asks what a route with [Access] asks.
+        var hub = HubFor(Guid.NewGuid());
+
+        // Act
+        var hidden = () => hub.Act(ProbeAuthority.PrivateProbe);
+        var missing = () => hub.Act(Guid.NewGuid());
+
+        // Assert
+        (await hidden.Should().ThrowAsync<HubException>()).Which.Message
+            .Should().Be((await missing.Should().ThrowAsync<HubException>()).Which.Message);
     }
 
     private ProbeHub HubFor(Guid? userId)
