@@ -175,6 +175,7 @@ message StartPaymentForTargetResponse {
   string attempt_id = 2;
   string client_secret = 3;     // empty for non-Stripe providers
   string status = 4;            // canonical PaymentStatus name (typically Pending)
+  bool receipt_emailed = 5;     // Stripe will email the payer a receipt once the card goes through
 }
 
 // === CancelPaymentForTarget ===
