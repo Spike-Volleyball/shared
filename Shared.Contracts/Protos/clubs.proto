@@ -314,6 +314,10 @@ message CheckUserClubRolesResponse {
   // Prefer this over `roles`: matching role names is what let each service keep its own copy of
   // the vocabulary and drift from the others. Absent or unreadable means deny.
   repeated string permissions = 3;
+
+  // Whether the club itself is verified. Some powers are for verified clubs only - anyone can
+  // create a club in seconds. False when absent, so an older clubs-service denies.
+  bool club_is_verified = 4;
 }
 
 // === Skill Matrix ===
