@@ -18,4 +18,10 @@ public record EventRestoredEvent : INotificationEvent
     /// Volley is back on" alone does not say which one.
     /// </summary>
     public DateTime? StartTime { get; init; }
+
+    /// <summary>
+    /// When the organiser restored it: one value for every recipient of one restore, so a second
+    /// restore of the same event is not taken for a duplicate of the first.
+    /// </summary>
+    public DateTime? RestoredAt { get; init; }
 }
