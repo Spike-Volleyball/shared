@@ -282,6 +282,20 @@ message AuthorizedClub {
   // Teams and groups this user is a MEMBER of, whatever their role there. Membership, not
   // authority — it is the reason a player sees their own team's events while holding nothing.
   repeated string member_unit_ids = 3;
+
+  // What this user may do inside each of those units — the answer GetMembership gives for that
+  // team or group, club permissions already projected onto their unit-scoped twins. It is how a
+  // coach whose only standing is on one team reaches that team's sessions.
+  //
+  // Member units only. A club role's reach into units the user is not in is `permissions` above,
+  // paired with the club an event belongs to; repeating it here would list every unit of the club.
+  repeated AuthorizedUnit units = 4;
+}
+
+message AuthorizedUnit {
+  string unit_id = 1;
+  string context_type = 2;  // "Team" | "Group"
+  repeated string permissions = 3;
 }
 
 message GetUserAuthorizedContextsResponse {
