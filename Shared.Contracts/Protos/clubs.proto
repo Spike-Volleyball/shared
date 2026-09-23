@@ -69,6 +69,12 @@ service ClubsInternalService {
   // Every enum here has a DENY zero value, so a default-constructed response - the
   // shape a failed or unimplemented call produces - refuses rather than permits.
   rpc ResolveUserRelationship (ResolveUserRelationshipRequest) returns (ResolveUserRelationshipResponse);
+
+  // For events-service: whether a club's public page is live and how it shows the club's
+  // sessions. A club with no live page - never published, unpublished, or no longer public
+  // and verified - answers published = false, so a default-constructed response, the shape a
+  // failed call produces, hides the sessions rather than showing them.
+  rpc GetClubPublicPage (GetClubPublicPageRequest) returns (ClubPublicPageInfo);
 }
 
 // Which people a member list is being asked for. The zero value is Members and not an
@@ -429,4 +435,17 @@ message ResolveUserRelationshipResponse {
   TrustLevel target_trust = 3;
   repeated ClubBadge viewer_clubs = 4;  // ranked, capped so the payload stays bounded
   int32 viewer_club_count = 5;          // total before the cap
+}
+
+// === Public page ===
+
+message GetClubPublicPageRequest {
+  string club_id = 1;
+}
+
+message ClubPublicPageInfo {
+  bool published = 1;     // the page is published AND the club is public and verified
+  string slug = 2;        // the club's page address; empty only when there is no such club
+  bool show_venue = 3;    // from the published page; false whenever published is false
+  bool show_matches = 4;  // from the published page; false whenever published is false
 }
