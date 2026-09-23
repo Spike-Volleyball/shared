@@ -16,4 +16,10 @@ public record UserIdentityChangedEvent : IEvent
     public required DateTime DateOfBirth { get; init; }
     public string? CountryCode { get; init; }
     public required AgeTier AgeTier { get; init; }
+
+    /// <summary>
+    /// auth's verification flag, which the copies downstream gate receipts on. Null when the
+    /// publisher does not speak for it, and the copies keep what they hold.
+    /// </summary>
+    public bool? IsEmailVerified { get; init; }
 }

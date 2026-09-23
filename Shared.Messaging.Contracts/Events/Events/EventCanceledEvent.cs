@@ -15,4 +15,11 @@ public record EventCanceledEvent : INotificationEvent
     /// Volley cancelled" alone does not say which one.
     /// </summary>
     public DateTime? StartTime { get; init; }
+
+    /// <summary>
+    /// When the organiser cancelled: one value for every recipient of one cancellation. It is what
+    /// tells two cancellations of one event apart once a restore sits between them, so the second
+    /// is not taken for a duplicate of the first.
+    /// </summary>
+    public DateTime? CanceledAt { get; init; }
 }
