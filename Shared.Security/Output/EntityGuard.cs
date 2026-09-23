@@ -21,12 +21,13 @@ public static class EntityGuard
 
     /// <summary>
     /// A class implementing <see cref="IEntity{TKey}"/>, or any class from a <c>*.Domain</c>
-    /// assembly. Enums and structs from those assemblies are values and pass.
+    /// assembly. Enums and structs from those assemblies are values and pass. An array is only a
+    /// container - it reports its element's assembly - so it passes and its elements are judged.
     /// </summary>
     public static bool IsEntity(Type type) => Verdicts.GetOrAdd(type, static t =>
     {
         var candidate = Nullable.GetUnderlyingType(t) ?? t;
-        if (!candidate.IsClass || candidate == typeof(string))
+        if (!candidate.IsClass || candidate.IsArray || candidate == typeof(string))
             return false;
 
         return candidate.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEntity<>))

@@ -56,6 +56,41 @@ public class EntityGuardTests
     }
 
     [Test]
+    public void IsEntity_AnArrayOfDomainEnums_IsAValue()
+    {
+        // Arrange — an array reports its element's assembly and counts as a class, so a DTO's
+        // DrillSkill[] looked like a Domain class and every drill response would have been refused.
+        var enums = DomainAssembly.Enum.MakeArrayType();
+
+        // Act & Assert
+        EntityGuard.IsEntity(enums).Should().BeFalse();
+    }
+
+    [Test]
+    public void Newtonsoft_AnArrayOfEntities_IsStillRefused()
+    {
+        // Act — the array is only a container; the entities inside are what is refused.
+        var act = () => JsonConvert.SerializeObject(new[] { new Profile() }, GuardedNewtonsoft);
+
+        // Assert
+        act.Should().Throw<EntityExposureException>();
+    }
+
+    [Test]
+    public void SystemTextJson_AnArrayOfEntities_IsStillRefused()
+    {
+        // Arrange
+        var options = new JsonSerializerOptions();
+        EntityGuard.Guard(options);
+
+        // Act
+        var act = () => System.Text.Json.JsonSerializer.Serialize(new[] { new Profile() }, options);
+
+        // Assert
+        act.Should().Throw<EntityExposureException>();
+    }
+
+    [Test]
     public void Newtonsoft_AnEntity_IsRefused()
     {
         // Act
