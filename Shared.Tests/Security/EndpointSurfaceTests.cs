@@ -36,6 +36,8 @@ public class EndpointSurfaceTests
             built = app;
             app.MapGet("/declares-nothing", () => "ok");
             app.MapGet("/public", () => "ok").AllowPublic("A public page's data");
+            app.MapGet("/limited", () => "ok").AllowPublic("A public page's data, a visitor at a time").RequireRateLimiting("probe");
+            app.MapPost("/form", () => "ok").AllowPublic("A public form");
             app.MapGet("/bare", () => "ok").AllowAnonymous();
             app.MapGet("/internal", () => "ok").RequireInternalListener(5011);
             app.MapGet("/things/{thingId:guid}", (Guid thingId) => "ok");
@@ -102,6 +104,18 @@ public class EndpointSurfaceTests
         // Assert
         uncheckedRoutes.Should().Contain("GET /things/{thingId:guid}")
             .And.NotContain(line => line.Contains("/scoped/") || line.StartsWith("GET /probes/"));
+    }
+
+    [Test]
+    public void UnlimitedPublicReads_FindsAPublicReadNoRateLimitCovers()
+    {
+        // Act
+        var unlimited = EndpointSurface.UnlimitedPublicReads(_services);
+
+        // Assert
+        unlimited.Should().Contain("GET /public")
+            .And.NotContain(line => line.Contains("/limited") || line.Contains("/form")
+                                    || line.Contains("/declares-nothing") || line.Contains("/internal"));
     }
 
     [Test]

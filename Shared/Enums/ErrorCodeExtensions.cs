@@ -33,6 +33,7 @@ namespace Shared.Enums
                 ErrorCodeEnum.InternalError => "Internal Server Error",
                 ErrorCodeEnum.EntityNotFound => "Resource Not Found",
                 ErrorCodeEnum.Forbidden => "Access Forbidden",
+                ErrorCodeEnum.RateLimited => "Too Many Requests",
 
                 // Authentication
                 ErrorCodeEnum.InvalidCredentials => "Invalid Credentials",

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Shared.Enums;
 
 namespace Shared.DTOs.Errors;
 
@@ -130,6 +131,17 @@ public class ProblemDetailsResponse
             title: "Conflict",
             status: 409,
             code: code,
+            detail: detail
+        );
+    }
+
+    public static ProblemDetailsResponse TooManyRequests(string detail)
+    {
+        return new ProblemDetailsResponse(
+            type: "too-many-requests",
+            title: ErrorCodeEnum.RateLimited.ToTitle(),
+            status: 429,
+            code: ErrorCodeEnum.RateLimited.ToStringCode(),
             detail: detail
         );
     }
