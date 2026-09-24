@@ -243,6 +243,9 @@ message VenueInfo {
   optional double latitude = 10;
   optional double longitude = 11;
   string how_to_get_there = 12;
+  // The venue's club chose to show how_to_get_there to people who are not its members. Off
+  // until the club says so: the directions can hold a door code.
+  bool instructions_are_public = 13;
 }
 
 // === Common Messages ===
