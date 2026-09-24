@@ -10,5 +10,5 @@ public class JwtPayloadDto
     public AgeTier? AgeTier { get; set; }
     public bool HasRequiredConsent { get; set; } = true;
     public DateTime? ConsentLastModified { get; set; }
-    public int SessionVersion { get; set; } = 1;
+    public int SessionVersion { get; set; } = SessionVersions.Initial;
 }
