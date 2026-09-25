@@ -17,6 +17,9 @@ service UserProfileService {
   rpc GetAllActiveUserIds (GetAllActiveUserIdsRequest) returns (GetAllActiveUserIdsResponse);
   rpc GetAbsenceWindows (GetAbsenceWindowsRequest) returns (GetAbsenceWindowsResponse);
   rpc GetPlayerPositions (GetPlayerPositionsRequest) returns (GetPlayerPositionsResponse);
+  // Which of these users the viewer may see, by the rules a profile is shown by: an adult to any
+  // signed-in user, a minor only to themselves, their guardians and the members of their clubs.
+  rpc FilterVisibleUsers (FilterVisibleUsersRequest) returns (FilterVisibleUsersResponse);
 }
 
 message CreateProfileRequest {
@@ -144,4 +147,14 @@ message GetPlayerPositionsResponse {
 message PlayerPositions {
   string user_id = 1;
   repeated string positions = 2;  // VolleyballPosition names; preferred + secondary, flattened
+}
+
+message FilterVisibleUsersRequest {
+  string viewer_id = 1;
+  repeated string user_ids = 2;
+}
+
+message FilterVisibleUsersResponse {
+  // The subset of user_ids the viewer may see, in no particular order.
+  repeated string visible_user_ids = 1;
 }
