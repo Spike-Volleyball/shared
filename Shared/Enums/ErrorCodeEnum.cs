@@ -55,6 +55,7 @@
         ClubApplicationLimitReached = 406,
         ClubRegistrationRateLimited = 407,
         FormVersionOutdated = 408,
+        InvitationAlreadyPending = 409,
 
         // Payments (500-599)
         PaymentFailed = 500,
