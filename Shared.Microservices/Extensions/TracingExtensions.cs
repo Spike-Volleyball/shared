@@ -72,7 +72,9 @@ public static class TracingExtensions
     {
         return tracing.AddEntityFrameworkCoreInstrumentation(options =>
         {
-            options.Filter = (_, _) => HasExportedAncestor(Activity.Current);
+            // The instrumentation calls this with its own command span as Activity.Current, and only
+            // when that span is recorded, so the span itself would always pass: start at its parent.
+            options.Filter = (_, _) => HasExportedAncestor(Activity.Current?.Parent);
         });
     }
 
