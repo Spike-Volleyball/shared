@@ -16,7 +16,8 @@ public record MatchResultChangedEvent : IEvent
 
     public required Guid MatchEventId { get; init; }
 
-    /// The division the match was drawn in, or the tournament itself when it has no divisions.
+    /// The division the match was drawn in, or the tournament itself when it has no divisions; absent for a
+    /// match played outside any tournament.
     public Guid? TournamentId { get; init; }
 
     /// <inheritdoc cref="TournamentResultsChangedEvent.Name"/>
@@ -37,6 +38,9 @@ public record MatchResultChangedEvent : IEvent
 
     /// Each side's pick of the other side's best player, for the players who have an account.
     public required IReadOnlyList<MatchMvpPick> MvpPicks { get; init; }
+
+    /// The player who kept the score or scouted the match, when they have an account.
+    public Guid? ScorerUserId { get; init; }
 
     /// <summary>
     /// When the match was played: the end of its slot on the timetable. Read from the match rather
