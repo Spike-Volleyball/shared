@@ -17,6 +17,8 @@ public class TracingExtensionsTests
 {
     private const string EfCoreSource = "OpenTelemetry.Instrumentation.EntityFrameworkCore";
 
+    private static readonly ActivitySource WorkSource = new("tracing-tests.work");
+
     private readonly List<Activity> _exported = [];
     private SqliteConnection _connection = null!;
     private WebApplication _app = null!;
@@ -39,6 +41,7 @@ public class TracingExtensionsTests
         builder.Services.AddDbContext<ProbeDbContext>(options => options.UseSqlite(_connection));
         builder.Services.AddTracing(builder.Configuration, "tracing-tests", tracing => tracing
             .AddFilteredEfCoreInstrumentation()
+            .AddSource(WorkSource.Name)
             .AddInMemoryExporter(_exported));
 
         _app = builder.Build();
@@ -47,6 +50,7 @@ public class TracingExtensionsTests
             _requestActivity = Activity.Current;
             await db.Database.ExecuteSqlRawAsync("SELECT 1");
         });
+        _app.MapGet("/health", () => WorkSource.StartActivity("work under a probe")?.Stop());
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -84,6 +88,32 @@ public class TracingExtensionsTests
 
         // Assert
         _exported.Should().NotContain(activity => activity.Source.Name == EfCoreSource);
+    }
+
+    [Test]
+    public async Task AddTracing_RequestInAClientTraceThatWasNotSampled_IsStillTracedInThatTrace()
+    {
+        // Arrange
+        var clientTraceId = ActivityTraceId.CreateRandom();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/probe");
+        request.Headers.Add("traceparent", $"00-{clientTraceId}-{ActivitySpanId.CreateRandom()}-00");
+
+        // Act
+        await _client.SendAsync(request);
+
+        // Assert
+        _requestActivity!.TraceId.Should().Be(clientTraceId);
+        _requestActivity.Recorded.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task AddTracing_WorkUnderARequestThatIsNotTraced_IsNotTracedEither()
+    {
+        // Act
+        await _client.GetAsync("/health");
+
+        // Assert
+        _exported.Should().NotContain(activity => activity.Source.Name == WorkSource.Name);
     }
 
     public sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options) : DbContext(options);

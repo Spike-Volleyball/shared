@@ -15,10 +15,11 @@ public static class TracingExtensions
     /// (read automatically by the OTel SDK). Set it in docker-compose or .env files.
     /// Default (when unset): http://localhost:4317.
     ///
-    /// Sampling: defaults to ParentBased(AlwaysOn) = 100% of traces are exported.
-    /// This is appropriate for low-to-moderate traffic. When traffic grows, configure
-    /// OTEL_TRACES_SAMPLER=parentbased_traceidratio and OTEL_TRACES_SAMPLER_ARG=0.1
-    /// (10%) via environment variables — no code changes needed.
+    /// Sampling: every request is traced, including one whose W3C traceparent says the caller
+    /// did not sample it — web and mobile sample their own traces for their own budgets, and
+    /// that must not cost the backend its trace. Work under a local span that was filtered out
+    /// (a health probe) stays untraced. The sampler is set in code, so OTEL_TRACES_SAMPLER is
+    /// ignored: sampling less means changing the root sampler here.
     ///
     /// Note on HttpClientInstrumentation: outbound HTTP calls (including Stripe API,
     /// S3 signed URLs) are captured as spans. Query string parameters may contain
@@ -41,6 +42,9 @@ public static class TracingExtensions
             .WithTracing(tracing =>
             {
                 tracing
+                    .SetSampler(new ParentBasedSampler(
+                        new AlwaysOnSampler(),
+                        remoteParentNotSampled: new AlwaysOnSampler()))
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         // Filters out health check endpoints and SignalR HTTP upgrade
