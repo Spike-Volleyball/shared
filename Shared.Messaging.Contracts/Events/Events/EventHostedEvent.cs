@@ -12,6 +12,7 @@ public record EventHostedEvent : IEvent
 
     public required Guid HostedEventId { get; init; }
     public required Guid OrganiserUserId { get; init; }
+    public required string Name { get; init; }
     public Guid? ClubId { get; init; }
     public required HostedState State { get; init; }
 

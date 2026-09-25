@@ -15,6 +15,10 @@ public record AttendanceChangedEvent : IEvent
     public required Guid SessionId { get; init; }
 
     public Guid? ClubId { get; init; }
+
+    /// The club's name as it stands when the snapshot is taken; absent when the event has no club.
+    public string? ClubName { get; init; }
+
     public required string Name { get; init; }
     public required AttendanceState State { get; init; }
 
