@@ -50,7 +50,10 @@ public record TournamentResultsChangedEvent : IEvent
     /// </summary>
     public required IReadOnlyList<TournamentPlacing> Placings { get; init; }
 
-    /// The player of the tournament the organizer named, when they have an account.
+    /// <summary>
+    /// The player of the tournament the organizer named, when they have an account. One award for
+    /// the whole event, so every division of a tournament carries the same player.
+    /// </summary>
     public Guid? MvpUserId { get; init; }
 
     /// When this snapshot was taken, and so its version.
