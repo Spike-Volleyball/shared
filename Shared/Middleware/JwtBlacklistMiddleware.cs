@@ -1,38 +1,106 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Internal;
+using Microsoft.Extensions.Options;
 using Shared.Enums;
 using Shared.Exceptions;
+using Shared.Models.Jwt;
+using Shared.Options;
+using Shared.Services;
 
 namespace Shared.Middleware;
 
 public class JwtBlacklistMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly TimeProvider _timeProvider;
+    private readonly TimeSpan _sessionVersionCacheWindow;
+    private readonly MemoryCache _recordedVersions;
+    private readonly RevocationCache? _revocations;
 
-    public JwtBlacklistMiddleware(RequestDelegate next)
+    /// <remarks>
+    /// Everything after the next delegate is optional because services' own tests build this
+    /// middleware around that alone; built so, it reads revocations from the cache handed to
+    /// InvokeAsync.
+    /// </remarks>
+    public JwtBlacklistMiddleware(
+        RequestDelegate next,
+        IOptions<JwtSettings>? jwtSettings = null,
+        TimeProvider? timeProvider = null,
+        RevocationCache? revocations = null)
     {
         _next = next;
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _sessionVersionCacheWindow = TimeSpan.FromSeconds(
+            (jwtSettings?.Value ?? new JwtSettings()).SessionVersionCacheSeconds);
+        _recordedVersions = new MemoryCache(new MemoryCacheOptions { Clock = new TimeProviderClock(_timeProvider) });
+        _revocations = revocations;
     }
 
     public async Task InvokeAsync(HttpContext context, IDistributedCache cache)
     {
         if (context.User.Identity?.IsAuthenticated == true)
         {
-            // Check if all tokens for this user have been blacklisted (e.g., consent revocation)
             var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userId))
+            if (!string.IsNullOrEmpty(userId)
+                && await IsRevokedAsync(context.User, userId, _revocations?.Cache ?? cache))
             {
-                var blacklisted = await cache.GetStringAsync($"jwt_blacklist:{userId}");
-                if (blacklisted != null)
+                if (context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is null)
                 {
                     throw new UnauthorizedException(
                         "Token has been revoked",
                         ErrorCodeEnum.TokenInvalid);
                 }
+
+                // A revoked token is no identity. Where signing in is optional the request goes on
+                // signed out, so a client that still attaches the token, signing in again after
+                // changing the password, say, is not turned away.
+                context.User = new ClaimsPrincipal(new ClaimsIdentity());
             }
         }
 
         await _next(context);
+    }
+
+    /// <summary>
+    /// Whether every token the account holds is blacklisted (consent withdrawn, a suspension), or
+    /// this one was minted before the account's session version last moved on.
+    /// </summary>
+    private async Task<bool> IsRevokedAsync(ClaimsPrincipal user, string userId, IDistributedCache revocations) =>
+        await revocations.GetStringAsync($"jwt_blacklist:{userId}") != null
+        || await HasSessionEndedAsync(user, userId, revocations);
+
+    /// <summary>
+    /// Whether the token was minted before auth last moved its account's session version on: the
+    /// password was replaced, say, so every session the account had is over, this one included.
+    /// </summary>
+    private async Task<bool> HasSessionEndedAsync(ClaimsPrincipal user, string userId, IDistributedCache revocations) =>
+        await RecordedSessionVersionAsync(userId, revocations) > TokenSessionVersion(user);
+
+    /// <summary>
+    /// What auth last recorded for the account, or null when it recorded nothing, remembered for the
+    /// window either way. A failed read is not remembered: it fails the request, as a failed
+    /// blacklist read does, and the next request asks again.
+    /// </summary>
+    private Task<int?> RecordedSessionVersionAsync(string userId, IDistributedCache revocations) =>
+        _recordedVersions.GetOrCreateAsync(userId, async entry =>
+        {
+            entry.AbsoluteExpiration = _timeProvider.GetUtcNow() + _sessionVersionCacheWindow;
+            return int.TryParse(await revocations.GetStringAsync(SessionVersions.CacheKey(userId)), out var version)
+                ? version
+                : (int?)null;
+        });
+
+    private static int TokenSessionVersion(ClaimsPrincipal user) =>
+        int.TryParse(user.FindFirst(SessionVersions.ClaimType)?.Value, out var version)
+            ? version
+            : SessionVersions.Initial;
+
+    private sealed class TimeProviderClock(TimeProvider timeProvider) : ISystemClock
+    {
+        public DateTimeOffset UtcNow => timeProvider.GetUtcNow();
     }
 }
