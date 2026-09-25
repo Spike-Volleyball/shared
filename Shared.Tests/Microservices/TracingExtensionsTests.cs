@@ -50,7 +50,9 @@ public class TracingExtensionsTests
             _requestActivity = Activity.Current;
             await db.Database.ExecuteSqlRawAsync("SELECT 1");
         });
-        _app.MapGet("/health", () => WorkSource.StartActivity("work under a probe")?.Stop());
+        _app.MapGet("/health", DoWork);
+        _app.MapGet("/metrics", DoWork);
+        _app.MapGet("/hubs/probe", DoWork);
 
         await _app.StartAsync();
         _client = _app.GetTestClient();
@@ -106,6 +108,18 @@ public class TracingExtensionsTests
         _requestActivity.Recorded.Should().BeTrue();
     }
 
+    [TestCase("/health")]
+    [TestCase("/metrics")]
+    [TestCase("/hubs/probe")]
+    public async Task AddTracing_RequestThatIsNotUserTraffic_IsNotTraced(string path)
+    {
+        // Act
+        await _client.GetAsync(path);
+
+        // Assert
+        _requestActivity!.Recorded.Should().BeFalse();
+    }
+
     [Test]
     public async Task AddTracing_WorkUnderARequestThatIsNotTraced_IsNotTracedEither()
     {
@@ -114,6 +128,12 @@ public class TracingExtensionsTests
 
         // Assert
         _exported.Should().NotContain(activity => activity.Source.Name == WorkSource.Name);
+    }
+
+    private void DoWork()
+    {
+        _requestActivity = Activity.Current;
+        WorkSource.StartActivity("work")?.Stop();
     }
 
     public sealed class ProbeDbContext(DbContextOptions<ProbeDbContext> options) : DbContext(options);

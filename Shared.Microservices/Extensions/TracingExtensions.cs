@@ -47,13 +47,9 @@ public static class TracingExtensions
                         remoteParentNotSampled: new AlwaysOnSampler()))
                     .AddAspNetCoreInstrumentation(options =>
                     {
-                        // Filters out health check endpoints and SignalR HTTP upgrade
-                        // requests. Note: once a WebSocket connection is established,
-                        // SignalR frames are not HTTP requests and are not traced by
-                        // ASP.NET Core instrumentation regardless of this filter.
-                        options.Filter = context =>
-                            !context.Request.Path.StartsWithSegments("/health") &&
-                            !context.Request.Path.StartsWithSegments("/hubs");
+                        // The filter sees every host in the process, so this also drops the
+                        // scrapes Prometheus makes to the separate metrics server.
+                        options.Filter = UserTraffic.Includes;
                     })
                     .AddHttpClientInstrumentation()
                     .AddOtlpExporter();
