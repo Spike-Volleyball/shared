@@ -1,8 +1,8 @@
 namespace Shared.Messaging.Contracts.Events.Rewards;
 
 /// <summary>
-/// A player has a new award, or one of theirs has moved — a corrected result turned their silver
-/// into gold. Published by rewards-service for grants that are not quiet; notifications-service
+/// A player has a new award, one of theirs has moved — a corrected result turned their silver
+/// into gold — or a pin of theirs levelled up. Published by rewards-service for grants that are not quiet; notifications-service
 /// turns it into the push that opens the unbox screen, in the words given here.
 /// </summary>
 public record AwardGrantedEvent : INotificationEvent
@@ -22,5 +22,8 @@ public record AwardGrantedEvent : INotificationEvent
 public enum AwardChange
 {
     Granted,
-    Moved
+    Moved,
+
+    /// A pin that levels up reached its next level: bronze to silver, silver to gold.
+    LevelledUp
 }
