@@ -37,6 +37,8 @@ internal sealed class SecuredTestApp : IAsyncDisposable
 
     public HttpClient Client { get; }
 
+    public IServiceProvider Services => _app.Services;
+
     public static async Task<SecuredTestApp> StartAsync(
         Action<WebApplication> map, Action<IServiceCollection>? services = null)
     {

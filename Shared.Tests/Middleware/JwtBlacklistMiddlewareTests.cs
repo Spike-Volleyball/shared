@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute;
@@ -62,6 +63,14 @@ public class JwtBlacklistMiddlewareTests : UnitTestBase
 
     private Task SessionVersionReads(int expected) =>
         _cache.Received(expected).GetAsync(SessionVersionKey, Arg.Any<CancellationToken>());
+
+    private static void OpenToAnyone(HttpContext context) =>
+        context.SetEndpoint(new Endpoint(
+            _ => Task.CompletedTask, new EndpointMetadataCollection(new AllowAnonymousAttribute()), "open"));
+
+    private static void SignedInOnly(HttpContext context) =>
+        context.SetEndpoint(new Endpoint(
+            _ => Task.CompletedTask, new EndpointMetadataCollection(new AuthorizeAttribute()), "signed-in only"));
 
     [Test]
     public async Task SignedOut_PassesWithoutReadingRedis()
@@ -267,5 +276,70 @@ public class JwtBlacklistMiddlewareTests : UnitTestBase
 
         // Assert
         await act.Should().ThrowAsync<UnauthorizedException>();
+    }
+
+    [Test]
+    public async Task StaleTokenWhereSigningInIsOptional_GoesOnSignedOut()
+    {
+        // Arrange — the phone that changed the password signs in again with the old token attached
+        Store(SessionVersionKey, "4");
+        var context = SignedIn(sessionVersion: 3);
+        OpenToAnyone(context);
+
+        // Act
+        await Sut().InvokeAsync(context, _cache);
+
+        // Assert
+        _nextRan.Should().BeTrue();
+        context.User.Identity!.IsAuthenticated.Should().BeFalse();
+        context.User.Claims.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task BlacklistedTokenWhereSigningInIsOptional_GoesOnSignedOut()
+    {
+        // Arrange
+        Store(BlacklistKey, "revoked");
+        var context = SignedIn(sessionVersion: 1);
+        OpenToAnyone(context);
+
+        // Act
+        await Sut().InvokeAsync(context, _cache);
+
+        // Assert
+        _nextRan.Should().BeTrue();
+        context.User.Identity!.IsAuthenticated.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task StaleTokenWhereSigningInIsRequired_IsRefused()
+    {
+        // Arrange
+        Store(SessionVersionKey, "4");
+        var context = SignedIn(sessionVersion: 3);
+        SignedInOnly(context);
+
+        // Act
+        var act = () => Sut().InvokeAsync(context, _cache);
+
+        // Assert
+        (await act.Should().ThrowAsync<UnauthorizedException>())
+            .Which.ErrorCode.Should().Be(ErrorCodeEnum.TokenInvalid);
+        _nextRan.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task CurrentTokenWhereSigningInIsOptional_KeepsItsIdentity()
+    {
+        // Arrange
+        Store(SessionVersionKey, "4");
+        var context = SignedIn(sessionVersion: 4);
+        OpenToAnyone(context);
+
+        // Act
+        await Sut().InvokeAsync(context, _cache);
+
+        // Assert
+        context.User.Identity!.IsAuthenticated.Should().BeTrue();
     }
 }
