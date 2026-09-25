@@ -21,7 +21,11 @@ public static class WebHostBuilderExtensions
                 options.AttachStacktrace = true;
                 options.MinimumBreadcrumbLevel = LogLevel.Information;
                 options.MinimumEventLevel = LogLevel.Error;
-                options.TracesSampleRate = 0.2;
+                // Errors only: backend traces live in Tempo. A zero rate alone is not enough,
+                // because Sentry keeps the sampling decision of an incoming sentry-trace or
+                // traceparent header, so its tracing middleware is not registered at all.
+                options.TracesSampleRate = 0;
+                options.AutoRegisterTracing = false;
             })
             .ConfigureServices(services =>
             {
