@@ -12,6 +12,10 @@ public record MatchStatsRecordedEvent : IEvent
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
 
     public required Guid MatchEventId { get; init; }
+
+    /// "Home v Away", as the teams were entered.
+    public required string MatchName { get; init; }
+
     public Guid? TournamentId { get; init; }
     public Guid? ClubId { get; init; }
     public required MatchStatsState State { get; init; }
