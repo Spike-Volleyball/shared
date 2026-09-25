@@ -7,7 +7,8 @@ package clubs;
 // Display names for a club's own teams, groups, venues and courts, for another service that shows
 // its data to people who may not be able to read the club: a shared planner view is opened by
 // anyone its planner chose, while a private club hides its teams and venues from non-members.
-// Names and colours only — no rosters, no addresses, no contact details.
+// Names and colours only — no rosters, no addresses, no contact details. The club's skill ladder
+// and time zone travel with them, so its sessions can say which levels they are for and when.
 service ClubLabels {
   rpc GetClubLabels (GetClubLabelsRequest) returns (GetClubLabelsResponse);
 }
@@ -23,6 +24,10 @@ message GetClubLabelsResponse {
   repeated UnitLabel teams = 3;
   repeated UnitLabel groups = 4;
   repeated VenueLabel venues = 5;
+  // The club's own skill ladder, lowest rung first. A level means something only inside its club.
+  repeated SkillLevelLabel skill_levels = 6;
+  // IANA id of the zone the club's sessions are in, e.g. "Europe/London".
+  string time_zone = 7;
 }
 
 message UnitLabel {
@@ -32,6 +37,16 @@ message UnitLabel {
   string color = 3;
   // Clubs only; empty for teams and groups and when none is set.
   string logo_url = 4;
+  // Teams and groups only: the levels of the ladder the unit is aimed at. Empty when it is open to
+  // every level, and always for clubs.
+  repeated string skill_level_ids = 5;
+}
+
+message SkillLevelLabel {
+  string id = 1;
+  string name = 2;
+  // Empty when none is set.
+  string color = 3;
 }
 
 message VenueLabel {

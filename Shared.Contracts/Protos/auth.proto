@@ -9,6 +9,8 @@ service AuthService {
   rpc CreateManagedUser (CreateManagedUserRequest) returns (CreateManagedUserResponse);
   rpc UpdateUserIdentity (UpdateUserIdentityRequest) returns (UpdateUserIdentityResponse);
   rpc FindMatchingUsers (FindMatchingUsersRequest) returns (FindMatchingUsersResponse);
+  rpc CreatePlaceholderUser (CreatePlaceholderUserRequest) returns (CreatePlaceholderUserResponse);
+  rpc IssuePlaceholderClaim (IssuePlaceholderClaimRequest) returns (IssuePlaceholderClaimResponse);
 }
 
 message CreateStubUserRequest {
@@ -20,14 +22,16 @@ message CreateStubUserRequest {
   string created_for_club_id = 6;
 }
 
+// The account an inviter means by an address, answered alike whoever holds it: the account already
+// there (a registered one or an earlier stub), or a new stub. The invitation reaches whoever holds
+// the address, and the caller learns nothing about who that is from the answer's shape.
 message CreateStubUserResponse {
   string user_id = 1;
   string email = 2;
   string first_name = 3;
   string last_name = 4;
   string phone_number = 5;
-  string error_code = 6;
-  // Note: no existing_user_id field — avoid leaking user IDs in error responses
+  string error_code = 6;         // no longer set: every address is answered with a user_id
 }
 
 message CreateManagedUserRequest {
@@ -73,4 +77,34 @@ message MatchedUser {
 message FindMatchingUsersResponse {
   string match_type = 1;
   repeated MatchedUser matches = 2;
+}
+
+// A person a club imports with no email and no phone: an inactive, passwordless account under a
+// made-up address, on the club's rosters at once, until its owner claims it with a code the club
+// hands them. Callers reach this with the club's members.manage check already done.
+message CreatePlaceholderUserRequest {
+  string club_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string date_of_birth = 4;      // ISO 8601, optional
+  string created_by_user_id = 5; // the admin who imported them, for auth's audit trail
+}
+
+message CreatePlaceholderUserResponse {
+  string user_id = 1;
+}
+
+// A new way to claim a club's placeholder: a short code to type and a token for a link. Issuing one
+// revokes every earlier one for the same placeholder. Both are kept hashed, so neither can be read
+// back: an admin who lost them issues new ones.
+message IssuePlaceholderClaimRequest {
+  string user_id = 1;
+  string club_id = 2;
+}
+
+message IssuePlaceholderClaimResponse {
+  string code = 1;
+  string token = 2;
+  string expires_at = 3;         // ISO 8601
+  string error_code = 4;         // NOT_A_PLACEHOLDER: already claimed, or not this club's
 }
