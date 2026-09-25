@@ -8,7 +8,8 @@ package clubs;
 // its data to people who may not be able to read the club: a shared planner view is opened by
 // anyone its planner chose, while a private club hides its teams and venues from non-members.
 // Names and colours only — no rosters, no addresses, no contact details. The club's skill ladder
-// and time zone travel with them, so its sessions can say which levels they are for and when.
+// and time zone travel with them, so its sessions can say which levels they are for and when, and
+// so does its rule for declining, so its events can ask for the note it wants.
 service ClubLabels {
   rpc GetClubLabels (GetClubLabelsRequest) returns (GetClubLabelsResponse);
 }
@@ -28,6 +29,10 @@ message GetClubLabelsResponse {
   repeated SkillLevelLabel skill_levels = 6;
   // IANA id of the zone the club's sessions are in, e.g. "Europe/London".
   string time_zone = 7;
+  // True when a member declining one of the club's events must say why.
+  bool require_decline_reason = 8;
+  // The club's own words for why it asks, shown beside the note. Empty when it gave none.
+  string decline_reason_message = 9;
 }
 
 message UnitLabel {
