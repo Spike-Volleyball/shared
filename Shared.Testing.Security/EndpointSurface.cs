@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -59,6 +60,21 @@ public static class EndpointSurface
             .Order(StringComparer.Ordinal)
             .ToList();
 
+    /// <summary>
+    /// Reads a signed-out caller may make as often as they like: public, and under no rate limit. Public reads
+    /// opt into the per-visitor limit, so what is left is the reviewed list of exceptions.
+    /// </summary>
+    public static IReadOnlyList<string> UnlimitedPublicReads(IServiceProvider services) =>
+        Endpoints(services)
+            .Where(e => e.Metadata.GetMetadata<InternalEndpointAttribute>() is null
+                        && e.Metadata.GetMetadata<IAllowAnonymous>() is not null
+                        && IsRead(e)
+                        && (e.Metadata.GetMetadata<EnableRateLimitingAttribute>() is null
+                            || e.Metadata.GetMetadata<DisableRateLimitingAttribute>() is not null))
+            .Select(Describe)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
     /// <summary>Routes that name an id and declare neither [Access] nor [NoResourceScope].</summary>
     public static IReadOnlyList<string> UncheckedIdRoutes(IServiceProvider services) =>
         Endpoints(services)
@@ -82,6 +98,11 @@ public static class EndpointSurface
 
     private static IEnumerable<RouteEndpoint> Endpoints(IServiceProvider services) =>
         services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>();
+
+    /// <summary>A GET, or a route that answers any method, as a mapped health check does.</summary>
+    private static bool IsRead(RouteEndpoint endpoint) =>
+        endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods is not { Count: > 0 } methods
+        || methods.Contains(HttpMethods.Get);
 
     private static bool IsId(string parameter) =>
         parameter.Equals("id", StringComparison.OrdinalIgnoreCase)
