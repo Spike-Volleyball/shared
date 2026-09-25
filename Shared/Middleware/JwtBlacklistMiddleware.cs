@@ -9,6 +9,7 @@ using Shared.Enums;
 using Shared.Exceptions;
 using Shared.Models.Jwt;
 using Shared.Options;
+using Shared.Services;
 
 namespace Shared.Middleware;
 
@@ -18,21 +19,25 @@ public class JwtBlacklistMiddleware
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _sessionVersionCacheWindow;
     private readonly MemoryCache _recordedVersions;
+    private readonly RevocationCache? _revocations;
 
     /// <remarks>
-    /// The settings and the clock are optional because services' own tests build this middleware
-    /// around its next delegate alone.
+    /// Everything after the next delegate is optional because services' own tests build this
+    /// middleware around that alone; built so, it reads revocations from the cache handed to
+    /// InvokeAsync.
     /// </remarks>
     public JwtBlacklistMiddleware(
         RequestDelegate next,
         IOptions<JwtSettings>? jwtSettings = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        RevocationCache? revocations = null)
     {
         _next = next;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _sessionVersionCacheWindow = TimeSpan.FromSeconds(
             (jwtSettings?.Value ?? new JwtSettings()).SessionVersionCacheSeconds);
         _recordedVersions = new MemoryCache(new MemoryCacheOptions { Clock = new TimeProviderClock(_timeProvider) });
+        _revocations = revocations;
     }
 
     public async Task InvokeAsync(HttpContext context, IDistributedCache cache)
@@ -41,7 +46,7 @@ public class JwtBlacklistMiddleware
         {
             var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrEmpty(userId)
-                && await IsRevokedAsync(context.User, userId, cache))
+                && await IsRevokedAsync(context.User, userId, _revocations?.Cache ?? cache))
             {
                 if (context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is null)
                 {

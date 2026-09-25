@@ -10,6 +10,7 @@ using Shared.Exceptions;
 using Shared.Middleware;
 using Shared.Models.Jwt;
 using Shared.Options;
+using Shared.Services;
 using Shared.Testing.Base;
 
 namespace Shared.Tests.Middleware;
@@ -46,7 +47,8 @@ public class JwtBlacklistMiddlewareTests : UnitTestBase
             return Task.CompletedTask;
         },
         Microsoft.Extensions.Options.Options.Create(new JwtSettings { SessionVersionCacheSeconds = cacheWindowSeconds }),
-        TimeProvider);
+        TimeProvider,
+        new RevocationCache(_cache));
 
     private void Store(string key, string? value) =>
         _cache.GetAsync(key, Arg.Any<CancellationToken>())
@@ -341,5 +343,34 @@ public class JwtBlacklistMiddlewareTests : UnitTestBase
 
         // Assert
         context.User.Identity!.IsAuthenticated.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task RevocationsAreReadFromTheRevocationCache_NotFromTheServicesOwn()
+    {
+        // Arrange — a service's own cache may prefix its keys, and would then miss the ones auth writes
+        var servicesOwn = Substitute.For<IDistributedCache>();
+        Store(SessionVersionKey, "4");
+
+        // Act
+        var act = () => Sut().InvokeAsync(SignedIn(sessionVersion: 3), servicesOwn);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
+        await servicesOwn.DidNotReceiveWithAnyArgs().GetAsync(default!, default);
+    }
+
+    [Test]
+    public async Task BuiltAroundItsNextDelegateAlone_ReadsTheCacheItIsHanded()
+    {
+        // Arrange — as services' own tests build it
+        Store(BlacklistKey, "revoked");
+        var sut = new JwtBlacklistMiddleware(_ => Task.CompletedTask);
+
+        // Act
+        var act = () => sut.InvokeAsync(SignedIn(sessionVersion: 1), _cache);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
     }
 }
