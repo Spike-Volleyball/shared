@@ -15,10 +15,11 @@ public static class TracingExtensions
     /// (read automatically by the OTel SDK). Set it in docker-compose or .env files.
     /// Default (when unset): http://localhost:4317.
     ///
-    /// Sampling: defaults to ParentBased(AlwaysOn) = 100% of traces are exported.
-    /// This is appropriate for low-to-moderate traffic. When traffic grows, configure
-    /// OTEL_TRACES_SAMPLER=parentbased_traceidratio and OTEL_TRACES_SAMPLER_ARG=0.1
-    /// (10%) via environment variables — no code changes needed.
+    /// Sampling: every request is traced, including one whose W3C traceparent says the caller
+    /// did not sample it — web and mobile sample their own traces for their own budgets, and
+    /// that must not cost the backend its trace. Work under a local span that was filtered out
+    /// (a health probe) stays untraced. The sampler is set in code, so OTEL_TRACES_SAMPLER is
+    /// ignored: sampling less means changing the root sampler here.
     ///
     /// Note on HttpClientInstrumentation: outbound HTTP calls (including Stripe API,
     /// S3 signed URLs) are captured as spans. Query string parameters may contain
@@ -41,15 +42,14 @@ public static class TracingExtensions
             .WithTracing(tracing =>
             {
                 tracing
+                    .SetSampler(new ParentBasedSampler(
+                        new AlwaysOnSampler(),
+                        remoteParentNotSampled: new AlwaysOnSampler()))
                     .AddAspNetCoreInstrumentation(options =>
                     {
-                        // Filters out health check endpoints and SignalR HTTP upgrade
-                        // requests. Note: once a WebSocket connection is established,
-                        // SignalR frames are not HTTP requests and are not traced by
-                        // ASP.NET Core instrumentation regardless of this filter.
-                        options.Filter = context =>
-                            !context.Request.Path.StartsWithSegments("/health") &&
-                            !context.Request.Path.StartsWithSegments("/hubs");
+                        // The filter sees every host in the process, so this also drops the
+                        // scrapes Prometheus makes to the separate metrics server.
+                        options.Filter = UserTraffic.Includes;
                     })
                     .AddHttpClientInstrumentation()
                     .AddOtlpExporter();
@@ -72,7 +72,9 @@ public static class TracingExtensions
     {
         return tracing.AddEntityFrameworkCoreInstrumentation(options =>
         {
-            options.Filter = (_, _) => HasExportedAncestor(Activity.Current);
+            // The instrumentation calls this with its own command span as Activity.Current, and only
+            // when that span is recorded, so the span itself would always pass: start at its parent.
+            options.Filter = (_, _) => HasExportedAncestor(Activity.Current?.Parent);
         });
     }
 

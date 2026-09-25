@@ -30,7 +30,7 @@ public static class MetricsExtensions
     public static IApplicationBuilder UsePrometheusMetrics(this IApplicationBuilder app)
     {
         app.UseWhen(
-            context => !context.Request.Path.StartsWithSegments("/hubs"),
+            UserTraffic.Includes,
             branch => branch.UseHttpMetrics(options =>
             {
                 options.ReduceStatusCodeCardinality();
