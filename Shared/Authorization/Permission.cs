@@ -50,6 +50,11 @@ public static class Permission
     public const string ContentBroadcast = "content.broadcast";
     public const string FinanceManage = "finance.manage";
 
+    // Below finance.manage: taking an event's payments into the club's own account. The money
+    // can land nowhere else, so this is running a paid session for the club, not running its
+    // books - which is why a head coach holds it without finance.manage (SPI-6619).
+    public const string FinanceCollect = "finance.collect";
+
     // Above finance.manage: linking where the club's money actually lands. payments keeps this
     // as an Owner-only tier already (PaymentAccountsController:74), and running the books is not
     // the same as choosing the bank account they settle into.
@@ -100,7 +105,7 @@ public static class Permission
         CoachingAssign,
         EventsViewAll, EventsCreate, EventsManage, FeedbackGive, LibraryManage,
         ContentPost, ContentModerate, ContentBroadcast,
-        FinanceManage, FinanceAccountsManage, SettingsManage,
+        FinanceManage, FinanceCollect, FinanceAccountsManage, SettingsManage,
         ClubDelete,
     };
 
