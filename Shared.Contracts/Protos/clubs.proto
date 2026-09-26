@@ -166,6 +166,15 @@ message GetMembershipResponse {
   //
   // Absent or unreadable means deny. Never populated from anything the caller supplied.
   repeated string permissions = 10;
+
+  // Whether the team or group has been retired (IsActive is false). A retired unit keeps its
+  // history, its pages and every answer above, so nothing anyone already has stops working; it
+  // takes nothing new, and refusing that is the caller's job. False for a club, and false from a
+  // clubs-service that predates the field, so a caller refusing on it fails open during a rollout.
+  bool retired = 11;
+
+  // The team's or group's own name, so a caller refusing it can say which one. Empty for a club.
+  string context_name = 12;
 }
 
 // === Member Suggestions ===
