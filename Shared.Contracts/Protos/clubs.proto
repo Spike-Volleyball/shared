@@ -269,6 +269,11 @@ message MemberInfo {
   repeated string via_user_ids = 4;
   // Present only for a direct team member; never inherited by a guardian.
   optional string shirt_number = 5;
+  // Every role the entry holds here, by name. `role` above is only the one with the highest
+  // ordinal, which is not the order every caller ranks roles in, so a caller that decides what
+  // someone does from their roles reads these. Empty for a derived guardian, and from a
+  // clubs-service that predates the field.
+  repeated string roles = 6;
 }
 
 message MemberSuggestion {
