@@ -1,9 +1,9 @@
 namespace Shared.Messaging.Contracts.Events.Subscriptions;
 
 /// <summary>
-/// Published by payments-service when one person's cover on a membership is set to end while it
-/// carries on for the others, for the payer. Today that is a child whose payer's guardian access
-/// was revoked: the cover already paid for runs to the end of the period.
+/// Published by payments-service when one person's cover on a membership ends while it carries on
+/// for the others, for the payer: at the end of the period already paid for when the payer's
+/// guardian access to them was revoked, or at once when they leave the club (<see cref="Cause"/>).
 /// </summary>
 public record SubscriptionCoverEndingEvent : INotificationEvent
 {
@@ -24,5 +24,8 @@ public record SubscriptionCoverEndingEvent : INotificationEvent
     /// <summary>Whose cover ends.</summary>
     public required SubscriptionCoveredPerson Leaving { get; init; }
 
+    /// <summary>When their cover ends: the end of the period, or the moment they left the club.</summary>
     public required DateTime LeavesAt { get; init; }
+
+    public SubscriptionCoverEndCause Cause { get; init; }
 }

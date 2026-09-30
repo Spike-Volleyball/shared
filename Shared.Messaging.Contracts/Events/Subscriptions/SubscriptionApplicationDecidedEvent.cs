@@ -2,8 +2,9 @@ namespace Shared.Messaging.Contracts.Events.Subscriptions;
 
 /// <summary>
 /// Published by payments-service when a club admin approves or rejects an application to join a
-/// membership plan, for the payer. An approved application is not a membership yet: it starts once
-/// paid, and lapses unpaid at <see cref="PayBy"/>.
+/// membership plan, or a request to move a membership to another (<see cref="PlanChange"/>), for
+/// the payer. An approved application is not a membership yet: it starts once paid, and lapses
+/// unpaid at <see cref="PayBy"/>.
 /// </summary>
 public record SubscriptionApplicationDecidedEvent : INotificationEvent
 {
@@ -29,4 +30,10 @@ public record SubscriptionApplicationDecidedEvent : INotificationEvent
 
     /// <summary>The admin's reason for a rejection, when they gave one.</summary>
     public string? Reason { get; init; }
+
+    /// <summary>
+    /// Set for a decision on a move to another plan rather than on joining one. <see cref="PlanName"/>
+    /// is then the plan asked for, and <see cref="PayBy"/> stays null: the move is billed at the renewal.
+    /// </summary>
+    public SubscriptionPlanChange? PlanChange { get; init; }
 }

@@ -1,9 +1,10 @@
 namespace Shared.Messaging.Contracts.Events.Subscriptions;
 
 /// <summary>
-/// Published by payments-service when a membership's renewal payment fails, for the payer. The
-/// membership carries on until <see cref="GraceEndsAt"/> and is suspended then unless paid. Paying
-/// is done signed in, by adding a card on the membership itself, not through a recovery link.
+/// Published by payments-service when a membership's renewal payment fails, for the payer, and
+/// again as a reminder while it stays unpaid (<see cref="ReminderNumber"/>). The membership carries
+/// on until <see cref="GraceEndsAt"/> and is suspended then unless paid. Paying is done signed in,
+/// by adding a card on the membership itself, not through a recovery link.
 /// </summary>
 public record SubscriptionPaymentFailedEvent : INotificationEvent
 {
@@ -27,4 +28,10 @@ public record SubscriptionPaymentFailedEvent : INotificationEvent
 
     public required string Currency { get; init; }
     public required DateTime GraceEndsAt { get; init; }
+
+    /// <summary>
+    /// 0 for the failure itself; 1 and 2 for the reminders on the third and fifth days of the grace
+    /// period, sent while it stays unpaid.
+    /// </summary>
+    public int ReminderNumber { get; init; }
 }

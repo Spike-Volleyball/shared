@@ -2,8 +2,9 @@ namespace Shared.Messaging.Contracts.Events.Subscriptions;
 
 /// <summary>
 /// Published by payments-service when someone applies for a membership plan that needs a club
-/// admin's approval. It is for the club's owners, admins and treasurers, whom payments asks clubs
-/// for as the application arrives; the payer is not told anything by it.
+/// admin's approval, or asks to move a membership they have to one (<see cref="PlanChange"/>). It
+/// is for the club's owners, admins and treasurers, whom payments asks clubs for as the
+/// application arrives; the payer is not told anything by it.
 /// </summary>
 public record SubscriptionApplicationReceivedEvent : IEvent
 {
@@ -29,4 +30,10 @@ public record SubscriptionApplicationReceivedEvent : IEvent
 
     /// <summary>The club's owners, admins and treasurers when the application arrived.</summary>
     public required IReadOnlyList<Guid> RecipientUserIds { get; init; }
+
+    /// <summary>
+    /// Set for a request to move an existing membership to another plan rather than to join one;
+    /// <see cref="PlanName"/> is then the plan asked for.
+    /// </summary>
+    public SubscriptionPlanChange? PlanChange { get; init; }
 }
