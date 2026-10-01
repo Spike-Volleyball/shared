@@ -39,9 +39,30 @@ public class ErrorHandlerMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            HandleAbandonedRequest(context);
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    /// <summary>
+    /// The caller hung up and the work stopped with it: nothing failed, and nobody is left to
+    /// answer. 499 rather than 500, so the request counts as the caller's in the metrics the
+    /// availability alerts read, and no error is logged for Sentry to raise.
+    /// </summary>
+    private void HandleAbandonedRequest(HttpContext context)
+    {
+        _logger.LogInformation(
+            "Request abandoned by the caller. Method: {Method}, Path: {Path}",
+            context.Request.Method, context.Request.Path);
+
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
         }
     }
 

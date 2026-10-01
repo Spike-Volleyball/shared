@@ -44,13 +44,7 @@ public sealed class AcceptsSubjectFilter : IAsyncAuthorizationFilter
 
         if (!httpContext.Request.Headers.TryGetValue(GuardianContextKeys.ActingAsHeader, out var rawValue))
         {
-            /*
-             * The self-serve caller is its own subject. Guid.Empty for an anonymous caller is what
-             * an [AllowAnonymous] action has always read out of an absent JWT, so marking an
-             * endpoint changes nothing for everyone who sends no header.
-             */
-            httpContext.Items[GuardianContextKeys.SubjectUserId] = jwtUserId ?? Guid.Empty;
-            httpContext.Items[GuardianContextKeys.ActorUserId] = jwtUserId ?? Guid.Empty;
+            BindTheCallerAsItsOwnSubject(httpContext, jwtUserId);
             return;
         }
 
@@ -62,8 +56,16 @@ public sealed class AcceptsSubjectFilter : IAsyncAuthorizationFilter
                 ErrorCodeEnum.ActingAsValidationFailed);
 
         if (subjectUserId == actorUserId)
-            throw new BadRequestException("Cannot act as yourself",
-                ErrorCodeEnum.ActingAsValidationFailed);
+        {
+            /*
+             * Naming yourself asks for nothing the request without the header does not, so it is
+             * answered as one. It was a 400 until installed app builds turned out to send the
+             * caller's own id when the caller reads their own RSVP. No delay either: it hides
+             * whether two people are linked, and a caller's own id tells them nothing.
+             */
+            BindTheCallerAsItsOwnSubject(httpContext, actorUserId);
+            return;
+        }
 
         await Task.Delay(TimeSpan.FromMilliseconds(DelayMilliseconds), _timeProvider,
             httpContext.RequestAborted);
@@ -75,5 +77,16 @@ public sealed class AcceptsSubjectFilter : IAsyncAuthorizationFilter
         httpContext.Items[GuardianContextKeys.ActorUserId] = actorUserId;
         httpContext.Items[GuardianContextKeys.AuthorizationSource] = authorization.AuthorizationSource;
         httpContext.Items[GuardianContextKeys.Processed] = true;
+    }
+
+    /// <summary>
+    /// The self-serve caller is its own subject. Guid.Empty for an anonymous caller is what an
+    /// [AllowAnonymous] action has always read out of an absent JWT, so marking an endpoint changes
+    /// nothing for everyone who sends no header.
+    /// </summary>
+    private static void BindTheCallerAsItsOwnSubject(HttpContext httpContext, Guid? jwtUserId)
+    {
+        httpContext.Items[GuardianContextKeys.SubjectUserId] = jwtUserId ?? Guid.Empty;
+        httpContext.Items[GuardianContextKeys.ActorUserId] = jwtUserId ?? Guid.Empty;
     }
 }

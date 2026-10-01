@@ -333,6 +333,15 @@
           "Sentry": "5.6.0"
         }
       },
+      "Sentry.Serilog": {
+        "type": "Transitive",
+        "resolved": "5.6.0",
+        "contentHash": "RTL6roBwp6i5By3wUyI/eDe4NcE9bh4sdWFuSoqDy4nFJYlk5j9WNx3eKGN2xmNHOCV9uGinSs7lWugo6gjRIg==",
+        "dependencies": {
+          "Sentry": "5.6.0",
+          "Serilog": "2.10.0"
+        }
+      },
       "Serilog": {
         "type": "Transitive",
         "resolved": "4.2.0",
@@ -448,6 +457,7 @@
         "dependencies": {
           "Microsoft.Extensions.Compliance.Redaction": "[10.0.0, )",
           "Sentry.AspNetCore": "[5.6.0, )",
+          "Sentry.Serilog": "[5.6.0, )",
           "Serilog.AspNetCore": "[9.0.0, )"
         }
       },
