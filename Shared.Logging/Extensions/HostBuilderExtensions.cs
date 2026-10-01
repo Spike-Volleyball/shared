@@ -19,7 +19,23 @@ public static class HostBuilderExtensions
                 .Enrich.FromLogContext()
                 .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName)
                 .Enrich.WithProperty("Application", context.HostingEnvironment.ApplicationName)
-                .WriteTo.Console(new Serilog.Formatting.Compact.RenderedCompactJsonFormatter());
+                .WriteTo.Console(new Serilog.Formatting.Compact.RenderedCompactJsonFormatter())
+                // Serilog is the only logger once this runs, so the logger provider UseSharedSentry
+                // registers never sees an ILogger call: without a sink of its own Sentry hears only
+                // what escapes the whole pipeline, and ErrorHandlerMiddleware lets nothing escape.
+                // A sub-logger, because Serilog hands it a copy of each event: the caller's address
+                // stays in the log and is taken out of what Sentry is sent, as SendDefaultPii = false
+                // in UseSharedSentry promises.
+                .WriteTo.Logger(forSentry => forSentry
+                    .Enrich.With<WithheldFromSentryEnricher>()
+                    .WriteTo.Sentry(sentry =>
+                    {
+                        // UseSharedSentry configures the SDK, its DSN included. This only feeds it,
+                        // and feeds nothing while no DSN is set.
+                        sentry.InitializeSdk = false;
+                        sentry.MinimumEventLevel = LogEventLevel.Error;
+                        sentry.MinimumBreadcrumbLevel = LogEventLevel.Information;
+                    }));
 
             // Override noisy loggers
             loggerConfig

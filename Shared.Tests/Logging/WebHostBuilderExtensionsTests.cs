@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
@@ -8,8 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sentry;
 using Sentry.AspNetCore;
-using Sentry.Extensibility;
-using Sentry.Protocol.Envelopes;
 using Shared.Logging.Extensions;
 
 namespace Shared.Tests.Logging;
@@ -18,14 +15,14 @@ namespace Shared.Tests.Logging;
 [Category("Unit")]
 public class WebHostBuilderExtensionsTests
 {
-    private RecordingTransport _transport = null!;
+    private RecordingSentryTransport _transport = null!;
     private WebApplication _app = null!;
     private HttpClient _client = null!;
 
     [SetUp]
     public async Task SetUp()
     {
-        _transport = new RecordingTransport();
+        _transport = new RecordingSentryTransport();
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer().UseSharedSentry();
@@ -83,19 +80,4 @@ public class WebHostBuilderExtensionsTests
 
     private Task FlushAsync() =>
         _app.Services.GetRequiredService<IHub>().FlushAsync(TimeSpan.FromSeconds(5));
-
-    private sealed class RecordingTransport : ITransport
-    {
-        private readonly ConcurrentQueue<string?> _itemTypes = new();
-
-        public IReadOnlyCollection<string?> ItemTypes => _itemTypes;
-
-        public Task SendEnvelopeAsync(Envelope envelope, CancellationToken cancellationToken = default)
-        {
-            foreach (var item in envelope.Items)
-                _itemTypes.Enqueue(item.TryGetType());
-
-            return Task.CompletedTask;
-        }
-    }
 }
