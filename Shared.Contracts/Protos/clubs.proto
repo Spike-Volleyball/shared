@@ -23,6 +23,11 @@ service ClubsInternalService {
   // For payments-service: check user's roles in a club
   rpc CheckUserClubRoles (CheckUserClubRolesRequest) returns (CheckUserClubRolesResponse);
 
+  // For payments-service: which of the club's teams and groups each of these people is in, and
+  // whether they are staff there, for a whole batch in one call. Staff is clubs' own definition,
+  // so no consumer keeps a copy of it.
+  rpc GetUnitStanding (GetUnitStandingRequest) returns (GetUnitStandingResponse);
+
   // Every context this user can act in, in one call. The listing counterpart to GetMembership:
   // filtering "events I may see" across many clubs needs the whole picture at once, and asking
   // per event is the N+1 that makes a permission check too expensive to do properly.
@@ -341,6 +346,29 @@ message CheckUserClubRolesResponse {
   // Whether the club itself is verified. Some powers are for verified clubs only - anyone can
   // create a club in seconds. False when absent, so an older clubs-service denies.
   bool club_is_verified = 4;
+}
+
+// === GetUnitStanding ===
+
+message GetUnitStandingRequest {
+  string club_id = 1;
+  repeated string user_ids = 2;
+}
+
+message GetUnitStandingResponse {
+  // One entry per unit row. Someone in none of the club's units has no entry.
+  repeated UnitStanding standings = 1;
+}
+
+// A person's active row on one of the club's teams or groups. Retired and deleted units are left
+// out, and so are rows switched off or outliving the club membership behind them.
+message UnitStanding {
+  string user_id = 1;
+  string unit_type = 2;  // "Team" | "Group"
+  string unit_id = 3;
+  // The row holds a role beyond the playing ones. A coach who also holds a roster position is
+  // still staff.
+  bool is_staff = 4;
 }
 
 // === Skill Matrix ===
