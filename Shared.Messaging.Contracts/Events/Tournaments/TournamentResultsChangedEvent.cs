@@ -28,6 +28,9 @@ public record TournamentResultsChangedEvent : IEvent
     /// "Parent · Division" for a division, the tournament's own name otherwise.
     public required string Name { get; init; }
 
+    /// The parent's own name, for a division: what is awarded for the whole event is named after it.
+    public string? ParentTournamentName { get; init; }
+
     /// Absent only for a tournament created before tournaments had days of play.
     public DateTime? StartDate { get; init; }
 

@@ -21,6 +21,9 @@ service EventsInternalService {
   rpc GetParticipantPaymentAmount (GetParticipantPaymentAmountRequest) returns (GetParticipantPaymentAmountResponse);
   rpc GetTeamPaymentInfo (GetTeamPaymentInfoRequest) returns (GetTeamPaymentInfoResponse);
   rpc CreateParticipantForPayToJoin (CreateParticipantForPayToJoinRequest) returns (CreateParticipantForPayToJoinResponse);
+  // Who may read and who may run a tournament, always answered for the tournament a division
+  // belongs to: rewards keeps one set of awards for the whole event, whichever division is asked.
+  rpc GetTournamentAccess (GetTournamentAccessRequest) returns (GetTournamentAccessResponse);
 }
 
 message IsEventAdminRequest {
@@ -191,4 +194,22 @@ message CreateParticipantForPayToJoinResponse {
   string participant_id = 2;
   string failure_reason = 3;
   bool requires_refund = 4;
+}
+
+// === GetTournamentAccess ===
+
+message GetTournamentAccessRequest {
+  string tournament_id = 1;     // a tournament or one of its divisions
+  optional string user_id = 2;  // absent for a signed-out caller
+}
+
+// Every answer is about the root: the tournament asked about, or the parent of the division asked
+// about. A tournament that does not exist answers found = false and nothing else.
+message GetTournamentAccessResponse {
+  bool found = 1;
+  bool can_read = 2;            // by the rule the tournament's own page is read by
+  bool can_administer = 3;      // its organizer, or staff of the club it is run for
+  string root_tournament_id = 4;
+  string club_id = 5;           // the club it is run for, empty if none
+  string name = 6;              // the root's own name
 }

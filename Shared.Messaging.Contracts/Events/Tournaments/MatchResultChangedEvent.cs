@@ -20,6 +20,10 @@ public record MatchResultChangedEvent : IEvent
     /// match played outside any tournament.
     public Guid? TournamentId { get; init; }
 
+    /// The tournament <see cref="TournamentId"/> is a division of; absent when it has no divisions, and for a
+    /// match played outside any tournament.
+    public Guid? ParentTournamentId { get; init; }
+
     /// <inheritdoc cref="TournamentResultsChangedEvent.Name"/>
     public string? TournamentName { get; init; }
 
