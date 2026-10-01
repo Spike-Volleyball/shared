@@ -140,18 +140,43 @@ public class AcceptsSubjectFilterTests
                 e.ErrorCode == ErrorCodeEnum.ActingAsValidationFailed);
     }
 
+    /// <summary>
+    /// Naming yourself asks for what the request without the header asks for. Installed apps send
+    /// their own id when the caller reads their own RSVP, and refusing it failed that screen.
+    /// </summary>
     [Test]
-    public async Task HeaderEqualsTheJwtUser_ThrowsBadRequest()
+    public async Task HeaderEqualsTheJwtUser_BindsTheJwtUserAsSubjectAsNoHeaderDoes()
     {
         // Arrange
         var context = Context(ActorId, actingAs: ActorId.ToString());
 
-        // Act & Assert
-        (await _sut.Invoking(f => f.OnAuthorizationAsync(context))
-                .Should().ThrowAsync<BadRequestException>())
-            .Which.Should().Match<BadRequestException>(e =>
-                e.Message == "Cannot act as yourself" &&
-                e.ErrorCode == ErrorCodeEnum.ActingAsValidationFailed);
+        // Act
+        await _sut.OnAuthorizationAsync(context);
+
+        // Assert
+        context.HttpContext.Items[GuardianContextKeys.SubjectUserId].Should().Be(ActorId);
+        context.HttpContext.Items[GuardianContextKeys.ActorUserId].Should().Be(ActorId);
+        context.HttpContext.Items.ContainsKey(GuardianContextKeys.Processed).Should().BeFalse();
+        context.HttpContext.Items.ContainsKey(GuardianContextKeys.AuthorizationSource).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// The delay hides whether two people are linked. A caller naming themselves reveals nothing
+    /// by being answered at once.
+    /// </summary>
+    [Test]
+    public async Task HeaderEqualsTheJwtUser_NeitherWaitsNorCallsTheAuthorizer()
+    {
+        // Arrange
+        var context = Context(ActorId, actingAs: ActorId.ToString());
+
+        // Act
+        var authorization = _sut.OnAuthorizationAsync(context);
+
+        // Assert
+        authorization.IsCompletedSuccessfully.Should().BeTrue();
+        await _authorizer.DidNotReceiveWithAnyArgs()
+            .AuthorizeAsync(default, default, default, default, null!, default);
     }
 
     [Test]
