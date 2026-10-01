@@ -18,4 +18,12 @@ public record UserJoinedEventEvent : INotificationEvent
     /// </summary>
     public int? AttendingCount { get; init; }
     public int? Capacity { get; init; }
+
+    /// <summary>
+    /// What was paid for this place, when paying is what secured it — an event that charges to
+    /// join announces nobody until the money has landed. Optional: a publisher that does not send
+    /// it, and a place nobody paid for, leave the payment out of the notification.
+    /// </summary>
+    public decimal? PaidAmount { get; init; }
+    public string? PaidCurrency { get; init; }
 }
