@@ -9,7 +9,8 @@ package clubs;
 // anyone its planner chose, while a private club hides its teams and venues from non-members.
 // Names and colours only — no rosters, no addresses, no contact details. The club's skill ladder
 // and time zone travel with them, so its sessions can say which levels they are for and when, and
-// so does its rule for declining, so its events can ask for the note it wants.
+// so does its rule for declining, so its events can ask for the note it wants, and its rule for
+// reminding, so its events know whether and when to nudge the people who haven't answered.
 service ClubLabels {
   rpc GetClubLabels (GetClubLabelsRequest) returns (GetClubLabelsResponse);
 }
@@ -33,6 +34,17 @@ message GetClubLabelsResponse {
   bool require_decline_reason = 8;
   // The club's own words for why it asks, shown beside the note. Empty when it gave none.
   string decline_reason_message = 9;
+  // True when the club's events send one automatic reminder to the invitees who haven't answered.
+  // False from a clubs-service that predates the setting, so nobody is reminded unasked.
+  bool auto_remind_non_responders = 10;
+  // How long before one of the club's events that reminder is due.
+  ReminderLead auto_reminder_lead = 11;
+}
+
+// The zero value is one day, the clubs' default, so a response that leaves it out means that.
+enum ReminderLead {
+  REMINDER_LEAD_ONE_DAY = 0;
+  REMINDER_LEAD_TWO_DAYS = 1;
 }
 
 message UnitLabel {
