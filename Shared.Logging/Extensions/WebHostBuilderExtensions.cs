@@ -26,6 +26,12 @@ public static class WebHostBuilderExtensions
                 // traceparent header, so its tracing middleware is not registered at all.
                 options.TracesSampleRate = 0;
                 options.AutoRegisterTracing = false;
+                // EF logs a command the database refuses as an error with no exception, and then
+                // the save or query that ran it as another, with it. One failure is one event:
+                // the command stays on the second as a breadcrumb, which the Serilog sink adds
+                // whether or not the event went out.
+                options.SetBeforeSend(@event =>
+                    @event.Logger == LogSourceNames.DatabaseCommand ? null : @event);
             })
             .ConfigureServices(services =>
             {

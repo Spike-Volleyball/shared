@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,6 +32,7 @@ public class HostBuilderExtensionsTests
     private const string CallerAddress = "203.0.113.7";
 
     private RecordingSentryTransport _transport = null!;
+    private SqliteConnection _database = null!;
     private TextWriter _console = null!;
     private StringWriter _logged = null!;
     private IHost? _host;
@@ -39,6 +42,9 @@ public class HostBuilderExtensionsTests
     public void SetUp()
     {
         _transport = new RecordingSentryTransport();
+        // In memory, and gone with its connection: one connection held open is the database.
+        _database = new SqliteConnection("DataSource=:memory:");
+        _database.Open();
         _console = Console.Out;
         _logged = new StringWriter();
         Console.SetOut(_logged);
@@ -54,6 +60,7 @@ public class HostBuilderExtensionsTests
             _host.Dispose();
         }
 
+        _database.Dispose();
         Console.SetOut(_console);
         _logged.Dispose();
     }
@@ -142,6 +149,33 @@ public class HostBuilderExtensionsTests
         sent.GetProperty("extra").TryGetProperty("Subject", out _).Should().BeTrue();
     }
 
+    /// <summary>
+    /// EF logs a command the database refuses twice: the command, with no exception, and then
+    /// the save that ran it, with it. Two errors in the log are one failure.
+    /// </summary>
+    [Test]
+    public async Task UseSharedSerilog_SaveTheDatabaseRefuses_IsOneEventCarryingTheCommandAsABreadcrumb()
+    {
+        // Arrange
+        await StartAsync(Dsn);
+
+        // Act
+        await _client!.GetAsync("/failing-save");
+        await FlushAsync();
+
+        // Assert
+        _logged.ToString().Should().Contain("Failed executing DbCommand");
+
+        var sent = _transport.Events.Should().ContainSingle().Which;
+        sent.GetProperty("exception").GetProperty("values").EnumerateArray()
+            .Select(exception => exception.GetProperty("type").GetString())
+            .Should().Contain(typeof(DbUpdateException).FullName);
+        sent.GetProperty("breadcrumbs").EnumerateArray()
+            .Should().Contain(crumb =>
+                crumb.GetProperty("category").GetString() == DbLoggerCategory.Database.Command.Name
+                && crumb.GetProperty("message").GetString()!.StartsWith("Failed executing DbCommand"));
+    }
+
     private async Task StartAsync(string? dsn)
     {
         _host = Host.CreateDefaultBuilder()
@@ -152,6 +186,7 @@ public class HostBuilderExtensionsTests
                 .ConfigureServices(services =>
                 {
                     services.AddRouting();
+                    services.AddDbContext<ProbeContext>(options => options.UseSqlite(_database));
                     services.Configure<SentryAspNetCoreOptions>(options =>
                     {
                         options.Dsn = dsn;
@@ -164,6 +199,9 @@ public class HostBuilderExtensionsTests
                     app.UseEndpoints(MapProbes);
                 }))
             .Build();
+
+        using (var scope = _host.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<ProbeContext>().Database.EnsureCreatedAsync();
 
         await _host.StartAsync();
 
@@ -187,8 +225,35 @@ public class HostBuilderExtensionsTests
             using (LogContext.PushProperty(LogPropertyNames.ClientIp, CallerAddress))
                 logger.LogError(new InvalidOperationException("probe"), "The probe failed for {Subject}", "a probe");
         });
+
+        endpoints.MapGet("/failing-save", async (ProbeContext context) =>
+        {
+            context.Rows.Add(new ProbeRow { Id = 1 });
+            await context.SaveChangesAsync();
+            context.ChangeTracker.Clear();
+
+            context.Rows.Add(new ProbeRow { Id = 1 });
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // The caller of a real save decides what a refusal means; EF has logged it by now.
+            }
+        });
     }
 
     private Task FlushAsync() =>
         _host!.Services.GetRequiredService<IHub>().FlushAsync(TimeSpan.FromSeconds(5));
+
+    private sealed class ProbeContext(DbContextOptions<ProbeContext> options) : DbContext(options)
+    {
+        public DbSet<ProbeRow> Rows => Set<ProbeRow>();
+    }
+
+    private sealed class ProbeRow
+    {
+        public int Id { get; set; }
+    }
 }
