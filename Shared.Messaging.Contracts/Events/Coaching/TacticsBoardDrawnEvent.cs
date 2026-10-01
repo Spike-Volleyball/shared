@@ -2,10 +2,11 @@ namespace Shared.Messaging.Contracts.Events.Coaching;
 
 /// <summary>
 /// A tactics board somebody made, once it has a drawing on it, whole: published the first time its
-/// maker saves it with one, and every time it is saved after that, with the tools its drawing uses
-/// then. Never for the starter boards a new shelf is seeded with. Each copy replaces the last; a
-/// consumer keeps the copy with the latest <see cref="SnapshotAt"/>.
+/// maker saves it with one, and again whenever a save changes the tools its drawing uses. Never for
+/// the starter boards a new shelf is seeded with. Each copy replaces the last; a consumer keeps the
+/// copy with the latest <see cref="SnapshotAt"/>.
 /// </summary>
+/// <remarks>It notifies nobody, so history can be republished.</remarks>
 public record TacticsBoardDrawnEvent : IEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
