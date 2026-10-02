@@ -17,6 +17,7 @@ message SendPushRequest {
   map<string, string> data = 4;
   string image_url = 5;
   string group_key = 6;
+  bool silent = 7;                   // delivered without sound or vibration ("send without sound")
 }
 
 message SendPushResponse {
