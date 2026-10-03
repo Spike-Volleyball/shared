@@ -150,26 +150,46 @@ public class HostBuilderExtensionsTests
     }
 
     /// <summary>
-    /// EF logs a command the database refuses twice: the command, with no exception, and then
-    /// the save that ran it, with it. Two errors in the log are one failure.
+    /// EF logs a save the database refuses as an error before its caller has seen it, so the log
+    /// cannot say whether it was handled. A caller that expects the refusal (an insert race it
+    /// recovers from, a redelivered webhook) has failed nothing.
     /// </summary>
     [Test]
-    public async Task UseSharedSerilog_SaveTheDatabaseRefuses_IsOneEventCarryingTheCommandAsABreadcrumb()
+    public async Task UseSharedSerilog_SaveTheDatabaseRefusesAndTheCallerHandles_SendsNoEvent()
     {
         // Arrange
         await StartAsync(Dsn);
 
         // Act
-        await _client!.GetAsync("/failing-save");
+        await _client!.GetAsync("/handled-failing-save");
         await FlushAsync();
 
         // Assert
-        _logged.ToString().Should().Contain("Failed executing DbCommand");
+        _logged.ToString().Should().Contain("Failed executing DbCommand")
+            .And.Contain("An exception occurred in the database while saving changes");
+        _transport.Events.Should().BeEmpty();
+    }
 
+    /// <summary>
+    /// A refusal nobody handles is reported by whoever it escapes to, with the refused command as
+    /// a breadcrumb: one failure, one event.
+    /// </summary>
+    [Test]
+    public async Task UseSharedSerilog_SaveTheDatabaseRefusesAndNobodyHandles_IsOneEventCarryingTheCommandAsABreadcrumb()
+    {
+        // Arrange
+        await StartAsync(Dsn);
+
+        // Act
+        await _client!.GetAsync("/unhandled-failing-save");
+        await FlushAsync();
+
+        // Assert
         var sent = _transport.Events.Should().ContainSingle().Which;
         sent.GetProperty("exception").GetProperty("values").EnumerateArray()
             .Select(exception => exception.GetProperty("type").GetString())
             .Should().Contain(typeof(DbUpdateException).FullName);
+
         sent.GetProperty("breadcrumbs").EnumerateArray()
             .Should().Contain(crumb =>
                 crumb.GetProperty("category").GetString() == DbLoggerCategory.Database.Command.Name
@@ -226,22 +246,29 @@ public class HostBuilderExtensionsTests
                 logger.LogError(new InvalidOperationException("probe"), "The probe failed for {Subject}", "a probe");
         });
 
-        endpoints.MapGet("/failing-save", async (ProbeContext context) =>
+        endpoints.MapGet("/handled-failing-save", async (ProbeContext context) =>
         {
-            context.Rows.Add(new ProbeRow { Id = 1 });
-            await context.SaveChangesAsync();
-            context.ChangeTracker.Clear();
-
-            context.Rows.Add(new ProbeRow { Id = 1 });
             try
             {
-                await context.SaveChangesAsync();
+                await SaveDuplicateAsync(context);
             }
             catch (DbUpdateException)
             {
                 // The caller of a real save decides what a refusal means; EF has logged it by now.
             }
         });
+
+        endpoints.MapGet("/unhandled-failing-save", (ProbeContext context) => SaveDuplicateAsync(context));
+    }
+
+    private static async Task SaveDuplicateAsync(ProbeContext context)
+    {
+        context.Rows.Add(new ProbeRow { Id = 1 });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        context.Rows.Add(new ProbeRow { Id = 1 });
+        await context.SaveChangesAsync();
     }
 
     private Task FlushAsync() =>
