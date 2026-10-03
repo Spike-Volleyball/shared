@@ -1,14 +1,15 @@
+using Shared.Models;
+
 namespace Shared.Messaging.Contracts.Events.Events;
 
 public class EventRespondReminderEvent : INotificationEvent
 {
     /// <summary>
     /// What a reminder says when nobody wrote its words; the notification adds the event's date
-    /// after it. One constant, because three places have to agree on it: the notification that
-    /// falls back to it, the club's settings that offer it to edit, and the services that treat
-    /// a message equal to it as none.
+    /// after it. Kept in Shared, see <see cref="ReminderWording.RespondDefault"/>, so a club's
+    /// settings can offer it too.
     /// </summary>
-    public const string DefaultMessage = "You haven't answered yet";
+    public const string DefaultMessage = ReminderWording.RespondDefault;
 
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
