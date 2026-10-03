@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
+using Serilog.Filters;
 
 namespace Shared.Logging.Extensions;
 
@@ -28,6 +29,12 @@ public static class HostBuilderExtensions
                 // in UseSharedSentry promises.
                 .WriteTo.Logger(forSentry => forSentry
                     .Enrich.With<WithheldFromSentryEnricher>()
+                    // EF logs a save the database refuses as an error before its caller has seen
+                    // the exception: a caller that expects it (an insert race, a redelivered
+                    // webhook) has failed nothing, and one that does not lets it through to be
+                    // reported there. Not dropped later in BeforeSend: Sentry would remember the
+                    // exception as sent and drop that report as its duplicate.
+                    .Filter.ByExcluding(Matching.FromSource(LogSourceNames.DatabaseSave))
                     .WriteTo.Sentry(sentry =>
                     {
                         // UseSharedSentry configures the SDK, its DSN included. This only feeds it,
