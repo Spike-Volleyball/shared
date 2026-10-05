@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 option csharp_namespace = "Shared.Contracts.Grpc";
 
 package coaching;
@@ -7,6 +9,12 @@ package coaching;
 service CoachingInternalService {
   rpc ValidateDrillExists (ValidateDrillExistsRequest) returns (ValidateDrillExistsResponse);
   rpc GetDrillsList (GetDrillsListRequest) returns (GetDrillsListResponse);
+  // What one user may do with the comments of one drill or plan. Social serves the thread and asks
+  // here before it reads or moderates it, because only coaching knows who may see either.
+  rpc GetCommentStanding (GetCommentStandingRequest) returns (GetCommentStandingResponse);
+  // Every comment coaching ever stored for one kind, paged by id. Exists for the one-off hand-over
+  // of those comments to social.
+  rpc ExportComments (ExportCommentsRequest) returns (ExportCommentsResponse);
 }
 
 message ValidateDrillExistsRequest {
@@ -36,4 +44,46 @@ message DrillInfo {
   int32 estimated_duration = 4;
   string level = 5;
   string thumbnail_url = 6;
+}
+
+enum CommentResourceKind {
+  COMMENT_RESOURCE_KIND_UNSPECIFIED = 0;
+  COMMENT_RESOURCE_KIND_DRILL = 1;
+  COMMENT_RESOURCE_KIND_PLAN = 2;
+}
+
+message GetCommentStandingRequest {
+  CommentResourceKind kind = 1;
+  string resource_id = 2;
+  string user_id = 3;
+}
+
+// An unknown or deleted resource answers exists = false with both flags false, never an error.
+message GetCommentStandingResponse {
+  bool exists = 1;
+  bool can_read = 2;
+  bool can_moderate = 3;
+}
+
+message ExportCommentsRequest {
+  CommentResourceKind kind = 1;
+  string after_id = 2;
+  int32 limit = 3;
+}
+
+message ExportedComment {
+  string id = 1;
+  string resource_id = 2;
+  string author_id = 3;
+  string parent_comment_id = 4;
+  string content = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  bool is_deleted = 8;
+}
+
+message ExportCommentsResponse {
+  repeated ExportedComment comments = 1;
+  // Empty when there are no more.
+  string next_after_id = 2;
 }

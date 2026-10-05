@@ -6,5 +6,7 @@ public enum ContextType
     Club = 1,
     Group = 2,
     Team = 3,
-    Event = 4
+    Event = 4,
+    Drill = 5,
+    Plan = 6
 }
