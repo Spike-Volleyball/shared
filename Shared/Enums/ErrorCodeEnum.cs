@@ -9,6 +9,7 @@
         EntityNotFound = 3,
         Forbidden = 4,
         RateLimited = 5,
+        CommentsMoved = 6,
 
         // Authentication (100-199)
         InvalidCredentials = 100,
