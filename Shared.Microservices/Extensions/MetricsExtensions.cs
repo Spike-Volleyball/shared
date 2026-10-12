@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Prometheus;
@@ -19,6 +20,19 @@ public static class MetricsExtensions
         var metricsPort = GetMetricsPort(configuration);
         services.AddSingleton(new MetricsServerOptions { Port = metricsPort });
         services.AddHostedService<MetricsServerHostedService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Takes the metrics server back out, for a host nobody scrapes. The server listens on a real port, so two
+    /// hosts in one process ask for the same one and the second cannot start: a test host calls this.
+    /// </summary>
+    public static IServiceCollection RemovePrometheusMetricsServer(this IServiceCollection services)
+    {
+        services.RemoveAll<MetricsServerOptions>();
+        foreach (var server in services.Where(d => d.ImplementationType == typeof(MetricsServerHostedService)).ToList())
+            services.Remove(server);
 
         return services;
     }
