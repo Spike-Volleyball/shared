@@ -73,10 +73,11 @@ public abstract class BaseEmailService : IEmailService
 
     private EmailTemplate ProcessTemplate(EmailTemplate template, Dictionary<string, string> parameters)
     {
+        // The band goes in before the caller's data, and never into the subject, which is one line of plain text.
         return new EmailTemplate
         {
             Subject = ProcessString(template.Subject, parameters),
-            Body = ProcessString(template.Body, parameters),
+            Body = ProcessString(AppLinksEmailBlock.FillPlaceholderIn(template.Body), parameters),
         };
     }
 
