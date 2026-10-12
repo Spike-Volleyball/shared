@@ -1,11 +1,8 @@
-using System.Globalization;
-using System.Net;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shared.DTOs.Errors;
 using Shared.Microservices.Authorization;
 
 namespace Shared.Security.PublicReads;
@@ -30,10 +27,7 @@ public sealed class PublicReadLimit : IRateLimiterPolicy<string>
     public const string RendererHeader = "X-Spike-Renderer";
 
     /// <summary>The visitor's address as the gateway resolved it, overwriting whatever the client sent.</summary>
-    public const string ClientAddressHeader = "X-Real-Client-Ip";
-
-    /// <summary>Only a caller that reaches a service without the gateway, as a test host does, has no address.</summary>
-    private const string NoAddress = "unknown";
+    public const string ClientAddressHeader = PublicVisitor.ClientAddressHeader;
 
     /// <summary>The partition of every read that is not counted. No address reads like it.</summary>
     private const string NotCounted = "not-counted";
@@ -55,7 +49,7 @@ public sealed class PublicReadLimit : IRateLimiterPolicy<string>
 
     public RateLimitPartition<string> GetPartition(HttpContext httpContext) =>
         IsCounted(httpContext)
-            ? RateLimitPartition.GetFixedWindowLimiter(VisitorOf(httpContext), _ => new FixedWindowRateLimiterOptions
+            ? RateLimitPartition.GetFixedWindowLimiter(PublicVisitor.AddressOf(httpContext), _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = _settings.PermitLimit,
                 Window = _settings.Window,
@@ -63,29 +57,10 @@ public sealed class PublicReadLimit : IRateLimiterPolicy<string>
             })
             : RateLimitPartition.GetNoLimiter(NotCounted);
 
-    public Func<OnRejectedContext, CancellationToken, ValueTask>? OnRejected { get; } = RejectAsync;
+    public Func<OnRejectedContext, CancellationToken, ValueTask>? OnRejected { get; } = PublicVisitor.RejectAsync;
 
     private bool IsCounted(HttpContext httpContext) =>
         !string.IsNullOrEmpty(_settings.RendererSecret)
         && httpContext.User.Identity?.IsAuthenticated != true
         && !SharedSecret.Matches(_settings.RendererSecret, httpContext.Request.Headers[RendererHeader].ToString());
-
-    private static string VisitorOf(HttpContext httpContext) =>
-        (IPAddress.TryParse(httpContext.Request.Headers[ClientAddressHeader].ToString(), out var address)
-            ? address
-            : httpContext.Connection.RemoteIpAddress)?.ToString() ?? NoAddress;
-
-    private static async ValueTask RejectAsync(OnRejectedContext context, CancellationToken cancellationToken)
-    {
-        var response = context.HttpContext.Response;
-        response.StatusCode = StatusCodes.Status429TooManyRequests;
-        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-            response.Headers.RetryAfter = Math.Ceiling(retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
-
-        await response.WriteAsJsonAsync(
-            ProblemDetailsResponse.TooManyRequests("Too many requests. Try again shortly."),
-            options: null,
-            contentType: "application/problem+json",
-            cancellationToken);
-    }
 }
