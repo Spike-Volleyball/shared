@@ -49,4 +49,48 @@ public class ContentDispositionValueTests
 
         Assert.That(result, Is.EqualTo("inline"));
     }
+
+    [Test]
+    public void Attachment_WithAsciiFileName_QuotesFileName()
+    {
+        var result = ContentDispositionValue.Attachment("logo.svg");
+
+        Assert.That(result, Is.EqualTo("attachment; filename=\"logo.svg\""));
+    }
+
+    [Test]
+    public void Attachment_WithNonAsciiFileName_AddsRfc5987EncodedVariant()
+    {
+        var result = ContentDispositionValue.Attachment("звіт.svg");
+
+        Assert.That(result, Is.EqualTo(
+            "attachment; filename=\"____.svg\"; filename*=UTF-8''%D0%B7%D0%B2%D1%96%D1%82.svg"));
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void Attachment_WithMissingFileName_OmitsFileName(string? fileName)
+    {
+        var result = ContentDispositionValue.Attachment(fileName);
+
+        Assert.That(result, Is.EqualTo("attachment"));
+    }
+
+    [Test]
+    public void For_WithSvg_ReturnsAttachment()
+    {
+        var result = ContentDispositionValue.For(ContentTypes.Svg, "logo.svg");
+
+        Assert.That(result, Is.EqualTo("attachment; filename=\"logo.svg\""));
+    }
+
+    [TestCase("image/png")]
+    [TestCase("application/pdf")]
+    public void For_WithOtherContentType_ReturnsInline(string contentType)
+    {
+        var result = ContentDispositionValue.For(contentType, "file.bin");
+
+        Assert.That(result, Is.EqualTo("inline; filename=\"file.bin\""));
+    }
 }
