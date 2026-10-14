@@ -24,6 +24,20 @@ service EventsInternalService {
   // Who may read and who may run a tournament, always answered for the tournament a division
   // belongs to: rewards keeps one set of awards for the whole event, whichever division is asked.
   rpc GetTournamentAccess (GetTournamentAccessRequest) returns (GetTournamentAccessResponse);
+  // Whether two people were on the same event, or on events of the same tournament, that has not
+  // ended before `since`. Messages asks it to let people who played or hosted together write to
+  // each other without sharing a club.
+  rpc SharesRecentEvent (SharesRecentEventRequest) returns (SharesRecentEventResponse);
+}
+
+message SharesRecentEventRequest {
+  string user_id = 1;
+  string other_user_id = 2;
+  string since = 3;            // ISO 8601, UTC: events that ended before it do not count
+}
+
+message SharesRecentEventResponse {
+  bool shares = 1;
 }
 
 message IsEventAdminRequest {
