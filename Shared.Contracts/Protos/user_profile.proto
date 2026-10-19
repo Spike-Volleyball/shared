@@ -46,6 +46,9 @@ message UserInfo {
   string name = 3;
   string surname = 4;
   string image_url = 5;
+  // ISO 3166-1 alpha-2, empty when the user never gave one. The landing page's live globe places a
+  // club with no venue in its owner's country.
+  string country_code = 6;
 }
 
 message GetUserInfoResponse {
