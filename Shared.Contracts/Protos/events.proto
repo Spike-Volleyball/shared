@@ -28,6 +28,18 @@ service EventsInternalService {
   // ended before `since`. Messages asks it to let people who played or hosted together write to
   // each other without sharing a club.
   rpc SharesRecentEvent (SharesRecentEventRequest) returns (SharesRecentEventResponse);
+  // Who belongs in an event's chat: the creator, the accepted hosts, and every participant who has
+  // not declined or been taken off the list. Messages seeds a chat from it and re-reads it whenever
+  // EventRosterChangedEvent says the roster moved.
+  rpc GetEventChatMembers (GetEventChatMembersRequest) returns (GetEventChatMembersResponse);
+}
+
+message GetEventChatMembersRequest {
+  string event_id = 1;
+}
+
+message GetEventChatMembersResponse {
+  repeated string user_ids = 1;
 }
 
 message SharesRecentEventRequest {
