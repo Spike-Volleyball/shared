@@ -18,6 +18,13 @@ public record EventWaitlistPromotedEvent : INotificationEvent
     public required string EventName { get; init; }
     public required DateTime StartTime { get; init; }
 
+    /// <summary>
+    /// The IANA zone of the place the event is played, so its time reads as it does on that place's
+    /// clocks wherever the recipient is. Null when it has no pinned venue, or from a publisher that
+    /// predates the field: the time is then read in the notification's default zone.
+    /// </summary>
+    public string? TimeZone { get; init; }
+
     /// <summary>When a held place is released if it is still unpaid; null when the place is theirs.</summary>
     public DateTime? PayBy { get; init; }
 

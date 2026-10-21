@@ -21,6 +21,13 @@ public class EventRespondReminderEvent : INotificationEvent
     public DateTime EventStartTime { get; set; }
 
     /// <summary>
+    /// The IANA zone of the place the event is played, so its time reads as it does on that place's
+    /// clocks wherever the recipient is. Null when it has no pinned venue, or from a publisher that
+    /// predates the field: the time is then read in the notification's default zone.
+    /// </summary>
+    public string? TimeZone { get; set; }
+
+    /// <summary>
     /// The words that stand in for <see cref="DefaultMessage"/>, if anyone wrote any: what the
     /// organiser typed when they sent the nudge, or the club's own words for its automatic one.
     /// Optional: a send need not carry one.
