@@ -9,7 +9,7 @@ namespace Shared.Messaging.Consumers
 {
     /// <summary>
     /// Keeps this service's copy of a profile in step with profiles-service. A repeated delivery
-    /// rewrites the same values. When two deliveries for an unseen profile arrive at once, both
+    /// changes nothing. When two deliveries for an unseen profile arrive at once, both
     /// find no row and both insert; the one that loses on the primary key updates the winner's row
     /// instead of failing.
     /// </summary>
@@ -63,8 +63,10 @@ namespace Shared.Messaging.Consumers
             existingProfile.DateOfBirth = userProfile.DateOfBirth;
             existingProfile.IsActive = userProfile.IsActive;
             existingProfile.IsEmailVerified = userProfile.IsEmailVerified;
-            _repository.Update(existingProfile);
 
+            // Tracked since the lookup, so the save writes only the columns that changed. Update()
+            // would write every column as it was read, putting back whatever another writer cleared
+            // in between: an account's own deletion handler erasing this copy, most of all.
             await _repository.SaveChangesAsync();
         }
     }
