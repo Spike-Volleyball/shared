@@ -1,12 +1,10 @@
-using Shared.Messaging.Contracts.Events.Tournaments;
-
 namespace Shared.Messaging.Contracts.Events.Events;
 
 /// <summary>
 /// The result of a match of its own, told to the people in it. The publisher words the title, the
 /// body and the page it opens, as it does for a tournament match's result.
 /// </summary>
-public record MatchResultPublishedEvent : IUserNotification
+public record MatchResultPublishedEvent : IEventNotice
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
