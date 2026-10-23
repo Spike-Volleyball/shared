@@ -91,13 +91,22 @@ public class ProblemDetailsResponse
         );
     }
 
-    public static ProblemDetailsResponse Forbidden(string detail)
+    /// <summary>
+    /// Refusals a client tells apart from any other 403 by their code, and shows one line for where an error would
+    /// be. Every other 403 goes out as FORBIDDEN, whatever code it was thrown with, as it always has: clients read it so.
+    /// </summary>
+    private static readonly IReadOnlySet<ErrorCodeEnum> ToldApartOnA403 = new HashSet<ErrorCodeEnum>
+    {
+        ErrorCodeEnum.ParticipantsHidden,
+    };
+
+    public static ProblemDetailsResponse Forbidden(string detail, ErrorCodeEnum errorCode = ErrorCodeEnum.Forbidden)
     {
         return new ProblemDetailsResponse(
             type: "forbidden",
             title: "Forbidden",
             status: 403,
-            code: "FORBIDDEN",
+            code: ToldApartOnA403.Contains(errorCode) ? errorCode.ToStringCode() : "FORBIDDEN",
             detail: detail
         );
     }

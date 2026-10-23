@@ -113,7 +113,7 @@ public class ErrorHandlerMiddleware
         {
             400 => ProblemDetailsResponse.BadRequest(stringCode, ex.Message),
             401 => ProblemDetailsResponse.Unauthorized(stringCode, ex.Message),
-            403 => ProblemDetailsResponse.Forbidden(ex.Message),
+            403 => ProblemDetailsResponse.Forbidden(ex.Message, ex.ErrorCode),
             404 => ProblemDetailsResponse.NotFound(stringCode, ex.Message),
             409 => ProblemDetailsResponse.Conflict(stringCode, ex.Message),
             _ => new ProblemDetailsResponse
