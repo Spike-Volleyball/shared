@@ -45,6 +45,7 @@
         ScoutLogConflict = 316,
         MatchRulesLocked = 317,
         MatchAlreadyScored = 318,
+        ParticipantsHidden = 319,
 
         // Clubs (400-499)
         ClubNotFound = 400,

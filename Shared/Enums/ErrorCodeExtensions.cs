@@ -56,6 +56,7 @@ namespace Shared.Enums
                 ErrorCodeEnum.NotParticipant => "Not a Participant",
                 ErrorCodeEnum.RegistrationClosed => "Registration Closed",
                 ErrorCodeEnum.PositionAlreadyClaimed => "Position Already Claimed",
+                ErrorCodeEnum.ParticipantsHidden => "Participants Hidden",
 
                 // Clubs
                 ErrorCodeEnum.ClubNotFound => "Club Not Found",
