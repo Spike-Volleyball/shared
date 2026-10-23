@@ -279,6 +279,10 @@ message MemberInfo {
   // someone does from their roles reads these. Empty for a derived guardian, and from a
   // clubs-service that predates the field.
   repeated string roles = 6;
+  // The positions the member plays for this team, by name, their primary one first. Present only for
+  // a direct team member; never inherited by a guardian, and empty from a clubs-service that predates
+  // the field.
+  repeated string positions = 7;
 }
 
 message MemberSuggestion {
