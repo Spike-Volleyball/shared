@@ -153,6 +153,28 @@ public class UserProfileUpdatedConsumerTests : IntegrationTestBase
         row.UpdatedAt.Should().Be(T0.AddHours(1).UtcDateTime);
     }
 
+    [TestCase(ReplicaShape.PluralTable)]
+    [TestCase(ReplicaShape.SingularTable)]
+    public async Task Consume_RowErasedBetweenLookupAndSave_LeavesTheErasureStanding(ReplicaShape shape)
+    {
+        // Arrange — an account's deletion reaches this service twice at once: its own deletion
+        // handler erases the row while profiles' anonymised update is between lookup and save
+        var id = Guid.NewGuid();
+        await ConsumeAsync(shape, Profile(id));
+        var erasedMeanwhile = new BeforeFirstSave(() => AnonymizeAsync(shape, id));
+        var anonymised = new UserProfile { Id = id };
+        anonymised.Anonymize();
+
+        // Act
+        await ConsumeAsync(shape, anonymised, erasedMeanwhile);
+
+        // Assert
+        erasedMeanwhile.Fired.Should().BeTrue();
+        var row = (await RowsAsync(shape, id)).Should().ContainSingle().Subject;
+        row.PhoneNumber.Should().BeNull();
+        row.ImageThumbHash.Should().BeNull();
+    }
+
     [Test]
     public async Task Consume_InsertCollidesWithAnotherProfilesRow_Throws()
     {
@@ -201,6 +223,14 @@ public class UserProfileUpdatedConsumerTests : IntegrationTestBase
     {
         await using var context = CreateContext(shape, _time);
         context.Add(new UserProfile { Id = id });
+        await context.SaveChangesAsync();
+    }
+
+    private async Task AnonymizeAsync(ReplicaShape shape, Guid id)
+    {
+        await using var context = CreateContext(shape, _time);
+        var row = await context.Set<UserProfile>().SingleAsync(p => p.Id == id);
+        row.Anonymize();
         await context.SaveChangesAsync();
     }
 
